@@ -116,7 +116,7 @@ export interface GroupData {
 
 // Photo data interface
 export interface PhotoData {
-  $id?: string;
+  $id?: string; // Document ID
   userid: string;
   groupid: string;
 }
@@ -403,43 +403,18 @@ export const appwriteDatabase = {
   // Upload photo to storage and create photo document
   uploadPhoto: async (photoUri: string, userId: string, groupIds: string[], prompt: string) => {
     try {
-      // Create unique photo ID
-      const photoId = ID.unique();
-      
       console.log('Starting photo upload process...');
       console.log('Photo URI:', photoUri);
       console.log('User ID:', userId);
       console.log('Group IDs:', groupIds);
       console.log('Storage bucket ID:', appwriteConfig.photosStorageBucketId);
       
-      // Get file info to determine size
-      const response = await fetch(photoUri);
-      const blob = await response.blob();
-      
-      // For React Native, create file object with all required properties
-      // As per Appwrite docs: name, type, size, uri are all required
-      const file = {
-        uri: photoUri,
-        type: 'image/jpeg',
-        name: `photo_${photoId}.jpg`,
-        size: blob.size, // Actual file size is required
-      };
-      
-      console.log('File object created:', file);
-      console.log('Uploading file with URI:', photoUri);
-      
-      // Upload to storage using React Native approach
-      const uploadResult = await storage.createFile(
-        appwriteConfig.photosStorageBucketId,
-        photoId,
-        file as any // React Native file format, bypass TypeScript
-      );
-      
-      console.log('Upload successful:', uploadResult);
-
       // Create photo documents for each group
       const photoDocuments = [];
       for (const groupId of groupIds) {
+        // Create document ID that will also be used as storage file ID
+        const documentId = ID.unique();
+        
         const photoData: Omit<PhotoData, '$id'> = {
           userid: userId,
           groupid: groupId,
@@ -448,14 +423,41 @@ export const appwriteDatabase = {
         const document = await databases.createDocument(
           appwriteConfig.databaseId,
           appwriteConfig.photoDataCollectionId,
-          ID.unique(),
+          documentId,
           photoData
         );
         
         photoDocuments.push(document);
+        
+        // Now upload the photo to storage using the same ID
+        if (photoDocuments.length === 1) { // Only upload once
+          // Get file info to determine size
+          const response = await fetch(photoUri);
+          const blob = await response.blob();
+          
+          // For React Native, create file object with all required properties
+          const file = {
+            uri: photoUri,
+            type: 'image/jpeg',
+            name: `photo_${documentId}.jpg`,
+            size: blob.size,
+          };
+          
+          console.log('File object created:', file);
+          console.log('Uploading file with URI:', photoUri);
+          
+          // Upload to storage using document ID as file ID
+          const uploadResult = await storage.createFile(
+            appwriteConfig.photosStorageBucketId,
+            documentId,
+            file as any
+          );
+          
+          console.log('Upload successful:', uploadResult);
+        }
       }
 
-      return { photoId, photoDocuments };
+      return { photoId: photoDocuments[0].$id, photoDocuments };
     } catch (error: any) {
       console.error('Error uploading photo:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
@@ -466,13 +468,45 @@ export const appwriteDatabase = {
     }
   },
 
-  // Get photo URL from storage
-  getPhotoUrl: (photoId: string) => {
+  // Get photo URL from storage (preview for image display)
+  getPhotoUrl: async (photoId: string, width: number = 400, height: number = 400) => {
     try {
-      return storage.getFileView(appwriteConfig.photosStorageBucketId, photoId);
+      // Construct URL manually for consistent cross-platform behavior
+      // Using view endpoint without authentication - bucket must be configured for public read
+      const url = `${appwriteConfig.endpoint}/storage/buckets/${appwriteConfig.photosStorageBucketId}/files/${photoId}/view?project=${appwriteConfig.projectId}`;
+      
+      console.log('Constructed photo URL:', url);
+      return url;
     } catch (error) {
-      console.error('Error getting photo URL:', error);
-      throw error;
+      console.error('Error constructing photo URL:', error);
+      return '';
+    }
+  },
+
+  // Download photo and convert to base64 for private bucket access
+  getPhotoBase64: async (photoId: string) => {
+    try {
+      // Download the file using SDK (includes authentication)
+      const response = await storage.getFileDownload(
+        appwriteConfig.photosStorageBucketId,
+        photoId
+      );
+      
+      // Convert ArrayBuffer to base64
+      const blob = new Blob([response]);
+      const reader = new FileReader();
+      
+      return new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          resolve(base64data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error downloading photo:', error);
+      return '';
     }
   },
 
@@ -482,7 +516,7 @@ export const appwriteDatabase = {
       const response = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.photoDataCollectionId,
-        [Query.equal('groupid', groupId), Query.orderDesc('timestamp')]
+        [Query.equal('groupid', groupId), Query.orderDesc('$createdAt')]
       );
       return response.documents as any[];
     } catch (error) {
@@ -497,7 +531,7 @@ export const appwriteDatabase = {
       const response = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.photoDataCollectionId,
-        [Query.equal('userid', userId), Query.orderDesc('timestamp')]
+        [Query.equal('userid', userId), Query.orderDesc('$createdAt')]
       );
       return response.documents as any[];
     } catch (error) {
