@@ -112,6 +112,7 @@ export interface GroupData {
   pastdata?: string;
   todaydata?: string;
   todayvotes?: string;
+  todaycomments?: string;
   resultdata?: string;
   gameid?: number;
 }
@@ -188,6 +189,7 @@ export const appwriteDatabase = {
         pastdata: "",
         todaydata: "",
         todayvotes: "",
+        todaycomments: "",
         resultdata: "",
         gameid: 0
       };
@@ -424,6 +426,73 @@ export const appwriteDatabase = {
       return true;
     } catch (error) {
       console.error('Error submitting group vote:', error);
+      throw error;
+    }
+  },
+
+  submitGroupComment: async (groupId: string, userId: string, assignedPhotoId: string, comment: string) => {
+    try {
+      const groupDoc = await appwriteDatabase.getGroupData(groupId);
+      let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
+      if (groupDoc.todaycomments) {
+        try {
+          todayComments = JSON.parse(groupDoc.todaycomments);
+        } catch (e) {
+          console.error("Could not parse todaycomments", e);
+        }
+      }
+      
+      todayComments[userId] = {
+        assignedPhotoId,
+        comment: comment.trim()
+      };
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        groupId,
+        { todaycomments: JSON.stringify(todayComments) }
+      );
+      return true;
+    } catch (error) {
+      console.error('Error submitting group comment:', error);
+      throw error;
+    }
+  },
+
+  savePhotoAssignments: async (groupId: string, assignments: Record<string, string>) => {
+    try {
+      const groupDoc = await appwriteDatabase.getGroupData(groupId);
+      let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
+      if (groupDoc.todaycomments) {
+        try {
+          todayComments = JSON.parse(groupDoc.todaycomments);
+        } catch (e) {
+          console.error("Could not parse todaycomments", e);
+        }
+      }
+      
+      // Add assignments for users who don't have comments yet
+      Object.entries(assignments).forEach(([userId, photoId]) => {
+        if (!todayComments[userId]) {
+          // Only assign the photo ID; comment will be added when user submits
+          todayComments[userId] = {
+            assignedPhotoId: photoId
+          } as any;
+        }
+      });
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        groupId,
+        { todaycomments: JSON.stringify(todayComments) }
+      );
+      
+      console.log('Saved photo assignments to database');
+      return true;
+    } catch (error) {
+      console.error('Error saving photo assignments:', error);
       throw error;
     }
   },
