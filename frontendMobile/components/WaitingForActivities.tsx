@@ -6,11 +6,14 @@ import {
   ActivityIndicator,
   ScrollView,
   Image,
+  SafeAreaView,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { appwriteDatabase, appwriteConfig, databases } from '@/lib/appwrite';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+const ORANGE = '#E85D42';
 
 interface WaitingForActivitiesProps {
   selectedGroupId: string;
@@ -130,96 +133,168 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.tint} />
-        <Text style={[styles.loadingText, { color: colors.text }]}>
-          Checking activity status...
-        </Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.tint} />
+          <Text style={styles.loadingText}>Checking activity status...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   const allPhotosSubmitted = submittedCount >= totalMembers && totalMembers > 0;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.section}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          {allPhotosSubmitted ? '⏳ Waiting for Activities' : '📸 Waiting for Photos'}
-        </Text>
-        
-        <Text style={[styles.subtitle, { color: colors.tabIconDefault }]}>
-          {allPhotosSubmitted 
-            ? 'All photos are in! The activity will start soon.'
-            : `${submittedCount} of ${totalMembers} members have submitted their photos.`
-          }
+    <SafeAreaView style={styles.container}>
+      {/* Decorative scribble */}
+      <View style={styles.topScribble} />
+
+      <ScrollView contentContainerStyle={styles.contentWrapper}>
+        {/* Label */}
+        <Text style={styles.promptLabel}>STATUS</Text>
+        {/* Main prompt text */}
+        <Text style={styles.promptText}>
+          {allPhotosSubmitted
+            ? 'waiting for game to start'
+            : 'waiting for everyone to upload'}
         </Text>
 
-        {/* Progress indicator */}
+        {/* Progress section */}
         <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  backgroundColor: colors.tint,
-                  width: `${totalMembers > 0 ? (submittedCount / totalMembers) * 100 : 0}%`
-                }
-              ]} 
+          <View style={styles.progressBarBg}>
+            <View
+              style={[styles.progressBarFill, { width: `${totalMembers > 0 ? (submittedCount / totalMembers) * 100 : 0}%` }]}
             />
           </View>
-          <Text style={[styles.progressText, { color: colors.tabIconDefault }]}>
-            {totalMembers > 0 ? Math.round((submittedCount / totalMembers) * 100) : 0}% Complete
+          <Text style={styles.progressText}>
+            {totalMembers > 0 ? Math.round((submittedCount / totalMembers) * 100) : 0}% complete
           </Text>
         </View>
 
-        {/* Photos grid */}
+        {/* Photos grid (only show if >0) */}
         {groupPhotos.length > 0 && (
-          <>
-            <Text style={[styles.photosTitle, { color: colors.text }]}>
-              Submitted Photos
-            </Text>
+          <View style={styles.photosGridWrapper}>
+            <Text style={styles.photosLabel}>submitted photos</Text>
             <View style={styles.photosGrid}>
               {groupPhotos.map((photo) => (
-                <View key={photo.id} style={styles.photoContainer}>
-                  <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-                  <View style={[styles.photoOverlay, { backgroundColor: colors.tint }]}>
-                    <Text style={[styles.photoCheck, { color: colors.background }]}>✓</Text>
-                  </View>
-                </View>
+                <Image key={photo.id} source={{ uri: photo.uri }} style={styles.photoThumb} />
               ))}
-              
-              {/* Placeholder for missing photos */}
-              {Array.from({ length: totalMembers - submittedCount }).map((_, index) => (
-                <View key={`placeholder-${index}`} style={[styles.photoPlaceholder, { borderColor: colors.border }]}>
-                  <Text style={[styles.placeholderText, { color: colors.tabIconDefault }]}>
-                    📷
-                  </Text>
-                </View>
+              {Array.from({ length: totalMembers - submittedCount }).map((_, idx) => (
+                <View key={`ph-${idx}`} style={styles.photoPlaceholder} />
               ))}
             </View>
-          </>
+          </View>
         )}
 
-        <View style={styles.messageContainer}>
-          <Text style={[styles.messageTitle, { color: colors.text }]}>
-            {allPhotosSubmitted ? '🎮 Get Ready!' : '⏰ Hang Tight!'}
+        {/* What's happening */}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusTitle}>
+            {allPhotosSubmitted ? '🎮 get ready!' : '⏰ hang tight!'}
           </Text>
-          <Text style={[styles.messageText, { color: colors.tabIconDefault }]}>
+          <Text style={styles.statusText}>
             {allPhotosSubmitted 
-              ? 'The game activity will begin automatically once it\'s time to play!'
-              : 'We\'re waiting for everyone to submit their photos. The activity will start once all photos are in!'
+              ? 'all photos are in! the game activity will begin automatically once it\'s time to play!'
+              : 'we\'re waiting for everyone to submit their photos. the activity will start once all photos are in!'
             }
           </Text>
         </View>
-      </View>
-    </ScrollView>
+
+        {/* Additional info if not all photos submitted */}
+        {!allPhotosSubmitted && (
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoText}>
+              still waiting for {totalMembers - submittedCount} more photo{totalMembers - submittedCount !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5EFE6',
+  },
+  topScribble: {
+    position: 'absolute',
+    top: 60,
+    right: 30,
+    width: 120,
+    height: 40,
+    borderWidth: 5,
+    borderColor: '#E85D42',
+    transform: [{ rotate: '15deg' }],
+  },
+  contentWrapper: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 40,
+  },
+  promptLabel: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#E85D42',
+    marginBottom: 8,
+    textAlign: 'left',
+    textTransform: 'uppercase',
+  },
+  promptText: {
+    fontSize: 36,
+    fontWeight: '700',
+    lineHeight: 42,
+    color: '#1C1C1C',
+    marginBottom: 48,
+    textTransform: 'lowercase',
+  },
+  progressContainer: {
+    marginBottom: 40,
+  },
+  progressBarBg: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#E85D42',
+  },
+  progressText: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: '#1C1C1C',
+    fontWeight: '600',
+    textTransform: 'lowercase',
+  },
+  photosGridWrapper: {
+    alignItems: 'center',
+  },
+  photosLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: '#1C1C1C',
+    textTransform: 'lowercase',
+  },
+  photosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  photoThumb: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+  },
+  photoPlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   loadingContainer: {
     flex: 1,
@@ -229,107 +304,31 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
+    color: '#1C1C1C',
   },
-  section: {
-    margin: 20,
-    padding: 20,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  statusContainer: {
+    marginBottom: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  progressContainer: {
-    marginBottom: 30,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  photosTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-    marginBottom: 30,
-  },
-  photoContainer: {
-    position: 'relative',
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  photoImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  photoOverlay: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoCheck: {
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  photoPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 24,
-    opacity: 0.5,
-  },
-  messageContainer: {
-    alignItems: 'center',
-  },
-  messageTitle: {
+  statusTitle: {
     fontSize: 20,
     fontWeight: '600',
-    marginBottom: 10,
-    textAlign: 'center',
+    color: '#1C1C1C',
+    marginBottom: 8,
+    textTransform: 'lowercase',
   },
-  messageText: {
+  statusText: {
     fontSize: 16,
-    textAlign: 'center',
+    color: '#1C1C1C',
     lineHeight: 22,
+  },
+  infoContainer: {
+    marginBottom: 20,
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#1C1C1C',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
 }); 

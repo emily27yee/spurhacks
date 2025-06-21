@@ -11,6 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGroups } from '@/hooks/useGroups';
@@ -26,6 +27,9 @@ interface GamesProps {
 }
 
 type GameType = 'voting' | 'comment';
+
+const ORANGE = '#E85D42';
+const BEIGE = '#F5EFE6';
 
 export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProps) {
   const colorScheme = useColorScheme();
@@ -459,28 +463,16 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     
     if (databaseFieldMissing) {
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            ⚠️ Database Setup Required
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 15 }]}>
-            The comment game requires a database field that hasn't been added yet.
-          </Text>
-          <View style={[styles.setupInstructions, { backgroundColor: colors.tint + '20', borderColor: colors.tint }]}>
-            <Text style={[styles.setupText, { color: colors.text }]}>
-              Please add this field to your Appwrite database:
+        <SafeAreaView style={styles.gameContainer}>
+          <View style={styles.topScribble} />
+          <ScrollView contentContainerStyle={styles.gameContentWrapper}>
+            <Text style={styles.gamePromptLabel}>ERROR</Text>
+            <Text style={styles.gamePromptText}>database setup required</Text>
+            <Text style={styles.gameDetailText}>
+              the comment game requires a database field that hasn't been added yet. please add 'todaycomments' field to your appwrite database and restart the app.
             </Text>
-            <Text style={[styles.setupCode, { color: colors.text }]}>
-              Collection: groupdata{'\n'}
-              Field Name: todaycomments{'\n'}
-              Type: String{'\n'}
-              Size: 5000 bytes
-            </Text>
-          </View>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault, marginTop: 15 }]}>
-            After adding the field, restart the app to continue.
-          </Text>
-        </View>
+          </ScrollView>
+        </SafeAreaView>
       );
     }
     
@@ -490,101 +482,79 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       const waitingFor = totalMembers - membersWithPhotos;
       
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            ⏳ Waiting for All Photos
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
-            {membersWithPhotos} out of {totalMembers} members have submitted photos.
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            We need {waitingFor} more photo{waitingFor !== 1 ? 's' : ''} before the comment game can begin.
-            Once everyone submits, you'll be assigned a photo to comment on!
-          </Text>
-          {membersWithPhotos >= 2 && (
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.tabIconDefault, marginTop: 20 }]}
-              onPress={() => setUserHasCommented(true)}
-            >
-              <Text style={[styles.buttonText, { color: colors.background }]}>
-                View Current Comments
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <SafeAreaView style={styles.gameContainer}>
+          <View style={styles.topScribble} />
+          <ScrollView contentContainerStyle={styles.gameContentWrapper}>
+            <Text style={styles.gamePromptLabel}>STATUS</Text>
+            <Text style={styles.gamePromptText}>waiting for all photos</Text>
+            <Text style={styles.gameDetailText}>
+              {membersWithPhotos} out of {totalMembers} members have submitted photos. we need {waitingFor} more photo{waitingFor !== 1 ? 's' : ''} before the comment game can begin.
+            </Text>
+          </ScrollView>
+        </SafeAreaView>
       );
     }
     
     if (!assignedPhoto) {
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Loading Your Photo...
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            We're preparing your photo assignment. This should just take a moment!
-          </Text>
-        </View>
+        <SafeAreaView style={styles.gameContainer}>
+          <View style={styles.topScribble} />
+          <View style={styles.gameLoadingContainer}>
+            <ActivityIndicator size="large" color={ORANGE} />
+            <Text style={styles.gameLoadingText}>loading your photo...</Text>
+          </View>
+        </SafeAreaView>
       );
     }
 
     return (
-      <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Today's Comment Game! 💭
-          </Text>
-          <Text style={[styles.activityPrompt, { color: colors.text }]}>
-            What do you think is happening in this photo?
-          </Text>
-          
-          <View style={styles.assignedPhotoContainer}>
-            <Image source={{ uri: assignedPhoto.uri }} style={styles.assignedPhoto} />
-          </View>
+      <SafeAreaView style={styles.gameContainer}>
+        <View style={styles.topScribble} />
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.gameContentWrapper}>
+            <Text style={styles.gamePromptLabel}>COMMENT</Text>
+            <Text style={styles.gamePromptText}>what do you think is happening?</Text>
+            
+            <View style={styles.gamePhotoContainer}>
+              <Image source={{ uri: assignedPhoto.uri }} style={styles.gamePhoto} />
+            </View>
 
-          <TextInput
-            ref={commentInputRef}
-            style={[styles.commentInput, { 
-              color: colors.text, 
-              borderColor: colors.border,
-              backgroundColor: colorScheme === 'dark' ? '#1c1c1c' : '#ffffff' 
-            }]}
-            placeholder="Write your comment here..."
-            placeholderTextColor={colors.tabIconDefault}
-            value={commentText}
-            onChangeText={(text) => {
-              console.log('Comment text changed:', text);
-              setCommentText(text);
-            }}
-            multiline={true}
-            numberOfLines={4}
-            maxLength={200}
-            textAlignVertical="top"
-            editable={true}
-            autoCapitalize="sentences"
-            autoCorrect={true}
-          />
-          
-          <Text style={[styles.characterCount, { color: colors.tabIconDefault }]}>
-            {commentText.length}/200
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: commentText.trim() ? colors.tint : colors.tabIconDefault }
-            ]}
-            onPress={submitComment}
-            disabled={!commentText.trim() || submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={colors.background} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.background }]}>
-                Submit Comment
+            <View style={styles.gameInputContainer}>
+              <TextInput
+                ref={commentInputRef}
+                style={styles.gameCommentInput}
+                placeholder="write your comment here..."
+                placeholderTextColor="rgba(28, 28, 28, 0.5)"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline={true}
+                maxLength={200}
+              />
+              <Text style={styles.gameCharacterCount}>
+                {commentText.length}/200
               </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.gameButton,
+                { backgroundColor: commentText.trim() ? ORANGE : 'rgba(232, 93, 66, 0.5)' }
+              ]}
+              onPress={submitComment}
+              disabled={!commentText.trim() || submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.gameButtonText}>submit comment →</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   };
 
@@ -740,12 +710,9 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   const renderTodaysPhotoSection = () => {
     if (hasUserTakenPhoto()) {
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <View style={styles.submittedContainer}>
+          <Text style={styles.submittedText}>
             📸 Photo Submitted!
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            Your photo is in today's game!
           </Text>
         </View>
       );
@@ -823,7 +790,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: BEIGE }]}>
       {/* Check timing constraints first */}
       {isNewDay && !activityActive ? (
         // New day but activity not active yet
@@ -870,7 +837,6 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                   resultsReleased ? renderCommentResults() : renderResultsNotReleased()
                 ) : renderCommentGame()
               )}
-              {renderTodaysPhotoSection()}
             </>
           )}
         </>
@@ -882,6 +848,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: BEIGE,
   },
   section: {
     margin: 20,
@@ -1060,5 +1027,125 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     lineHeight: 20,
+  },
+  gameContainer: {
+    flex: 1,
+    backgroundColor: BEIGE,
+  },
+  topScribble: {
+    position: 'absolute',
+    top: 60,
+    right: 30,
+    width: 120,
+    height: 40,
+    borderWidth: 5,
+    borderColor: ORANGE,
+    transform: [{ rotate: '15deg' }],
+  },
+  gameContentWrapper: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 80,
+    paddingBottom: 20,
+    justifyContent: 'center',
+  },
+  gamePromptLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: ORANGE,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  gamePromptText: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 32,
+    color: '#1C1C1C',
+    marginBottom: 24,
+    textTransform: 'lowercase',
+  },
+  gameDetailText: {
+    fontSize: 16,
+    color: '#1C1C1C',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  gameLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gameLoadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#1C1C1C',
+    textTransform: 'lowercase',
+  },
+  gamePhotoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  gamePhoto: {
+    width: '85%',
+    aspectRatio: 1.2,
+    borderRadius: 15,
+    resizeMode: 'cover',
+  },
+  gameInputContainer: {
+    marginBottom: 16,
+  },
+  gameCommentInput: {
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: 'rgba(28, 28, 28, 0.1)',
+    borderRadius: 16,
+    padding: 12,
+    paddingTop: 12,
+    fontSize: 16,
+    color: '#1C1C1C',
+    textAlignVertical: 'top',
+    minHeight: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gameButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 8,
+    marginTop: 8,
+  },
+  gameButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textTransform: 'lowercase',
+  },
+  gameCharacterCount: {
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 6,
+    color: 'rgba(28, 28, 28, 0.6)',
+  },
+  submittedContainer: {
+    backgroundColor: '#1C1C1C',
+    padding: 20,
+    borderRadius: 15,
+    margin: 20,
+    alignItems: 'center',
+  },
+  submittedText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
   },
 }); 
