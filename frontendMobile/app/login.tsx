@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, View, Dimensions, Image } from 'react-native';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -8,16 +8,16 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 
+const { width, height } = Dimensions.get('window');
+
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
   const { login, isLoading, isLoggedIn } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
-  const [showPassword, setShowPassword] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -62,7 +62,6 @@ export default function LoginScreen() {
     
     try {
       await login(formData.email, formData.password);
-      // Navigate to home page (tabs) after successful login
       router.replace('/(tabs)');
     } catch (error: any) {
       const errorMessage = error?.message || 'Login failed. Please try again.';
@@ -72,102 +71,71 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <ThemedView style={styles.header}>
-          <ThemedText style={styles.logo}>📸</ThemedText>
-          <ThemedText type="title" style={styles.title}>Welcome Back</ThemedText>
-          <ThemedText style={styles.subtitle}>Sign in to continue your week dump journey</ThemedText>
-        </ThemedView>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topBeigeBox} />
+        <View style={styles.topScribble} />
 
-        {/* Login Form */}
-        <ThemedView style={styles.formContainer}>
-          <ThemedView style={styles.inputContainer}>
-            <ThemedText style={styles.inputLabel}>Email</ThemedText>
+        {/* Illustration */}
+        <View style={styles.illustrationContainer}>
+            <Image source={require('@/assets/images/dumpster-fire.png')} style={styles.dumpsterGif} resizeMode="contain" />
+        </View>
+
+        <View style={styles.welcomeContainer}>
+          <ThemedText style={styles.welcomeText}>welcome back</ThemedText>
+        </View>
+
+        {/* Form Section */}
+        <View style={styles.formSection}>
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.inputLabel}>email</ThemedText>
             <TextInput
-              style={[styles.textInput, { 
-                color: colors.text, 
-                borderColor: colors.icon + '40',
-                backgroundColor: colors.background 
-              }]}
-              placeholder="Enter your email"
-              placeholderTextColor={colors.icon}
+              style={styles.textInput}
               value={formData.email}
               onChangeText={(value) => handleInputChange('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
-          </ThemedView>
+          </View>
 
-          <ThemedView style={styles.inputContainer}>
-            <ThemedText style={styles.inputLabel}>Password</ThemedText>
-            <ThemedView style={styles.passwordContainer}>
-              <TextInput
-                style={[styles.passwordInput, { 
-                  color: colors.text, 
-                  borderColor: colors.icon + '40',
-                  backgroundColor: colors.background 
-                }]}
-                placeholder="Enter your password"
-                placeholderTextColor={colors.icon}
-                value={formData.password}
-                onChangeText={(value) => handleInputChange('password', value)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity 
-                style={styles.passwordToggle}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <ThemedText style={[styles.passwordToggleText, { color: colors.tint }]}>
-                  {showPassword ? '🙈' : '👁️'}
-                </ThemedText>
-              </TouchableOpacity>
-            </ThemedView>
-          </ThemedView>
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.inputLabel}>password</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              value={formData.password}
+              onChangeText={(value) => handleInputChange('password', value)}
+              secureTextEntry={true}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
 
           <TouchableOpacity 
-            style={[styles.loginButton, { 
-              backgroundColor: colors.tint,
-              opacity: isLoading ? 0.7 : 1 
-            }]}
+            style={styles.signInButton}
             onPress={handleLogin}
             disabled={isLoading}
           >
-            <ThemedText style={styles.loginButtonText}>
-              {isLoading ? 'Signing In...' : 'Sign In'}
+            <ThemedText style={styles.signInButtonText}>
+              {isLoading ? 'signing in...' : 'sign in'}
             </ThemedText>
           </TouchableOpacity>
+        </View>
 
-          <TouchableOpacity style={styles.forgotPasswordButton}>
-            <ThemedText style={[styles.forgotPasswordText, { color: colors.tint }]}>
-              Forgot Password?
-            </ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
-
-        {/* Sign Up Link */}
-        <ThemedView style={styles.signUpContainer}>
+        <View style={styles.signUpContainer}>
           <ThemedText style={styles.signUpText}>Don't have an account? </ThemedText>
           <TouchableOpacity onPress={() => router.push('/create-account')}>
-            <ThemedText style={[styles.signUpLink, { color: colors.tint }]}>
-              Sign Up
-            </ThemedText>
+            <ThemedText style={styles.signUpLink}>Create one</ThemedText>
           </TouchableOpacity>
-        </ThemedView>
+        </View>
+        
+        <View style={styles.bottomScribble} />
 
-        {/* Demo Info */}
-        <ThemedView style={[styles.demoContainer, { backgroundColor: colors.tint + '10' }]}>
-          <ThemedText style={[styles.demoTitle, { color: colors.tint }]}>Demo Mode</ThemedText>
-          <ThemedText style={[styles.demoText, { color: colors.tint }]}>
-            Use any email and password (min 6 chars) to test the app
-          </ThemedText>
-        </ThemedView>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -176,115 +144,111 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingBottom: 150, // space for bottom decor
   },
-  header: {
+  // --- DECORATIONS ---
+  topBeigeBox: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: width * 0.7,
+    height: 180,
+    backgroundColor: '#F5EFE6',
+    borderBottomRightRadius: 80,
+  },
+  topScribble: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 120,
+    height: 40,
+    borderWidth: 5,
+    borderColor: '#E85D42',
+    transform: [{ rotate: '-15deg' }],
+  },
+  bottomScribble: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    width: 60,
+    height: 0,
+    borderBottomWidth: 20,
+    borderLeftWidth: 20,
+    borderRightWidth: 20,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#E85D42',
+    transform: [{ rotate: '120deg' }],
+  },
+  // --- ILLUSTRATION ---
+  illustrationContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginTop: height * 0.16,
+    marginBottom: -40, // pull image down to overlap
   },
-  logo: {
-    fontSize: 48,
-    marginBottom: 16,
+  dumpsterGif: {
+    width: 190,
+    height: 190,
   },
-  title: {
-    marginBottom: 8,
-    textAlign: 'center',
+  // --- TEXT & FORM ---
+  welcomeContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
   },
-  subtitle: {
-    textAlign: 'center',
-    opacity: 0.7,
-    fontSize: 16,
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1C1C1C',
   },
-  formContainer: {
-    marginBottom: 32,
+  formSection: {
+    paddingHorizontal: 40,
+    marginTop: 20,
   },
-  inputContainer: {
-    marginBottom: 20,
+  inputGroup: {
+    marginBottom: 24,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    color: '#3C3C3C',
     marginBottom: 8,
-    opacity: 0.8,
+    fontWeight: '500',
   },
   textInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: '#F5EFE6',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     fontSize: 16,
+    color: '#1C1C1C',
   },
-  passwordContainer: {
-    position: 'relative',
+  signInButton: {
+    backgroundColor: '#F7C52D',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    marginTop: 20,
   },
-  passwordInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    paddingRight: 50,
-    fontSize: 16,
-  },
-  passwordToggle: {
-    position: 'absolute',
-    right: 16,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
-  passwordToggleText: {
+  signInButtonText: {
     fontSize: 18,
-  },
-  loginButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
     fontWeight: '600',
-  },
-  forgotPasswordButton: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    fontWeight: '500',
+    color: '#1C1C1C',
   },
   signUpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginTop: 16,
   },
   signUpText: {
-    fontSize: 14,
+    color: '#A0A0A0',
   },
   signUpLink: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  demoContainer: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  demoText: {
-    fontSize: 12,
-    textAlign: 'center',
-    opacity: 0.8,
+    color: '#E85D42',
+    fontWeight: 'bold',
+    marginLeft: 5,
   },
 }); 

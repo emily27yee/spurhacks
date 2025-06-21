@@ -115,6 +115,8 @@ export interface GroupData {
   todaycomments?: string;
   resultdata?: string;
   gameid?: number;
+  activityactive?: boolean;
+  releaseresults?: boolean;
 }
 
 // Photo data interface
@@ -191,7 +193,9 @@ export const appwriteDatabase = {
         todayvotes: "",
         todaycomments: "",
         resultdata: "",
-        gameid: 0
+        gameid: 0,
+        activityactive: false,
+        releaseresults: false
       };
 
       const document = await databases.createDocument(

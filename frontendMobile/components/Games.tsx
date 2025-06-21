@@ -43,6 +43,9 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   const [gameType, setGameType] = useState<GameType>('voting');
   const [assignedPhotoId, setAssignedPhotoId] = useState<string>('');
   const [databaseFieldMissing, setDatabaseFieldMissing] = useState(false);
+  const [activityActive, setActivityActive] = useState(false);
+  const [resultsReleased, setResultsReleased] = useState(false);
+  const [isNewDay, setIsNewDay] = useState(false);
   const commentInputRef = useRef<TextInput>(null);
 
   const selectedGroup = userGroups.find(g => g.$id === selectedGroupId);
@@ -67,6 +70,23 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       setLoading(true);
       
       const groupData = await appwriteDatabase.getGroupData(selectedGroupId);
+      
+      // Check timing conditions
+      const hasEmptyVotes = !groupData.todayvotes || groupData.todayvotes.trim() === '' || groupData.todayvotes === '{}';
+      const hasEmptyComments = !groupData.todaycomments || groupData.todaycomments.trim() === '' || groupData.todaycomments === '{}';
+      const newDay = hasEmptyVotes && hasEmptyComments;
+      
+      setIsNewDay(newDay);
+      setActivityActive(!!groupData.activityactive);
+      setResultsReleased(!!groupData.releaseresults);
+      
+      console.log('Timing status:', {
+        isNewDay: newDay,
+        activityActive: !!groupData.activityactive,
+        resultsReleased: !!groupData.releaseresults,
+        hasEmptyVotes,
+        hasEmptyComments
+      });
       
       // Detect game type
       const currentGameType = detectGameType();
@@ -617,6 +637,54 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     );
   };
 
+  const renderActivityNotActive = () => {
+    return (
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          ⏰ Activity Not Available Yet
+        </Text>
+        <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
+          Today's activity hasn't started yet. Check back later when it's time to play!
+        </Text>
+        <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
+          Activities are typically available during specific hours of the day.
+        </Text>
+      </View>
+    );
+  };
+
+  const renderResultsNotReleased = () => {
+    return (
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          ⏳ Results Coming Soon
+        </Text>
+        <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
+          You've completed today's activity! Results will be available once the release time is reached.
+        </Text>
+        <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
+          Keep checking back - results are worth the wait! 🎉
+        </Text>
+      </View>
+    );
+  };
+
+  const renderNewDayWaiting = () => {
+    return (
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          🌅 New Day, New Adventures!
+        </Text>
+        <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
+          A fresh day has begun! Today's activity will be available soon.
+        </Text>
+        <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
+          Get ready to share and play with your group! 📸
+        </Text>
+      </View>
+    );
+  };
+
   const renderTodaysPhotoSection = () => {
     if (hasUserTakenPhoto()) {
       return (
@@ -678,40 +746,55 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Always show the photo section first */}
-      {!hasUserTakenPhoto() ? (
-        // If user hasn't taken photo, only show this section
-        <>
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              📸 Take Your Photo First!
-            </Text>
-            <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
-              You need to submit your photo before you can play today's game.
-            </Text>
-            <Text style={[styles.photoPrompt, { color: colors.text }]}>
-              Share a photo with your group! 📷
-            </Text>
-            
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.tint }]}
-              onPress={onNavigateToCamera}
-            >
-              <Text style={[styles.buttonText, { color: colors.background }]}>
-                📷 Take Photo
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </>
+      {/* Check timing constraints first */}
+      {isNewDay && !activityActive ? (
+        // New day but activity not active yet
+        renderNewDayWaiting()
+      ) : !activityActive ? (
+        // Activity not active (but not necessarily a new day)
+        renderActivityNotActive()
       ) : (
-        // If user has taken photo, show game based on type
+        // Activity is active - proceed with normal flow
         <>
-          {gameType === 'voting' ? (
-            userHasVoted ? renderVoteResults() : renderPhotoVoting()
+          {!hasUserTakenPhoto() ? (
+            // If user hasn't taken photo, only show this section
+            <>
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  📸 Take Your Photo First!
+                </Text>
+                <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
+                  You need to submit your photo before you can play today's game.
+                </Text>
+                <Text style={[styles.photoPrompt, { color: colors.text }]}>
+                  Share a photo with your group! 📷
+                </Text>
+                
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: colors.tint }]}
+                  onPress={onNavigateToCamera}
+                >
+                  <Text style={[styles.buttonText, { color: colors.background }]}>
+                    📷 Take Photo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
           ) : (
-            userHasCommented ? renderCommentResults() : renderCommentGame()
+            // If user has taken photo, check if they can see results or should play game
+            <>
+              {gameType === 'voting' ? (
+                userHasVoted ? (
+                  resultsReleased ? renderVoteResults() : renderResultsNotReleased()
+                ) : renderPhotoVoting()
+              ) : (
+                userHasCommented ? (
+                  resultsReleased ? renderCommentResults() : renderResultsNotReleased()
+                ) : renderCommentGame()
+              )}
+              {renderTodaysPhotoSection()}
+            </>
           )}
-          {renderTodaysPhotoSection()}
         </>
       )}
     </ScrollView>
