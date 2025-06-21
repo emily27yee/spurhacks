@@ -4,7 +4,7 @@
  */
 
 const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorDark = '#4ECDC4'; // Changed from white to a teal color for better visibility
 
 export const Colors = {
   light: {
@@ -14,6 +14,8 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    buttonText: '#fff', // White text for buttons with tint background
+    border: '#E5E5E7',
   },
   dark: {
     text: '#ECEDEE',
@@ -22,5 +24,7 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    buttonText: '#fff', // White text for buttons with tint background  
+    border: '#38383A',
   },
 };
