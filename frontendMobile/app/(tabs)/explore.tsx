@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, TextInput, Alert, ActivityIndicator, Modal, Dimensions } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View, TextInput, Alert, ActivityIndicator, Modal, Dimensions, Image } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useGroups, type Group } from '@/hooks/useGroups';
+import { appwriteDatabase } from '@/lib/appwrite';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +38,16 @@ export default function ProfileScreen() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
 
+  // Past photos state
+  interface PastPhoto {
+    photoId: string;
+    url: string;
+    created: string;
+  }
+
+  const [userPhotos, setUserPhotos] = useState<PastPhoto[]>([]);
+  const [photosLoading, setPhotosLoading] = useState<boolean>(true);
+
   // Update editedName and editedUsername when userProfile changes
   useEffect(() => {
     if (userProfile) {
@@ -44,6 +55,35 @@ export default function ProfileScreen() {
       setEditedUsername(userProfile.username);
     }
   }, [userProfile]);
+
+  // Fetch user's past photos once on mount
+  useEffect(() => {
+    const fetchPastPhotos = async () => {
+      if (!user?.$id) return;
+      try {
+        setPhotosLoading(true);
+        const docs: any[] = await appwriteDatabase.getUserPhotos(user.$id);
+        const mapped: PastPhoto[] = await Promise.all(docs.map(async (doc: any) => {
+          const photoId = doc.$id; // Document ID is the photo ID in storage
+          const url = await appwriteDatabase.getPhotoUrl(photoId, 200, 200);
+          return {
+            photoId,
+            url: url || '', // Ensure it's a string
+            created: (doc.$createdAt || doc.created) as string,
+          };
+        }));
+        mapped.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+        console.log('Fetched user photos:', mapped);
+        setUserPhotos(mapped);
+      } catch (err) {
+        console.error('Error fetching past photos:', err);
+      } finally {
+        setPhotosLoading(false);
+      }
+    };
+
+    fetchPastPhotos();
+  }, [user?.$id]);
 
   // Manual refresh function for discover button
   const handleRefreshGroups = () => {
@@ -227,6 +267,36 @@ export default function ProfileScreen() {
         </ThemedView>
       </ThemedView>
 
+      {/* Past Photos */}
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>Past Photos</ThemedText>
+        {photosLoading ? (
+          <ActivityIndicator size="small" color={colors.tint} />
+        ) : userPhotos.length === 0 ? (
+          <ThemedText style={{ opacity: 0.7 }}>No past photos yet.</ThemedText>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {userPhotos.map((photo) => (
+              <ThemedView key={photo.photoId} style={styles.photoContainer}>
+                <Image
+                  source={{ uri: photo.url }}
+                  style={styles.photoThumbnail}
+                  resizeMode="cover"
+                  onError={(error) => {
+                    console.error('Image loading error:', error.nativeEvent.error);
+                    console.error('Failed URL:', photo.url);
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', photo.photoId);
+                  }}
+                />
+                <ThemedText style={styles.photoDate}>{new Date(photo.created).toLocaleDateString()}</ThemedText>
+              </ThemedView>
+            ))}
+          </ScrollView>
+        )}
+      </ThemedView>
+
       {/* Edit Profile */}
       <ThemedView style={styles.section}>
         <ThemedView style={styles.sectionHeader}>
@@ -365,26 +435,7 @@ export default function ProfileScreen() {
         )}
       </ThemedView>
 
-      {/* Settings & Options */}
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>Settings</ThemedText>
-        <TouchableOpacity style={styles.settingItem}>
-          <ThemedText style={styles.settingLabel}>🔔 Notification Settings</ThemedText>
-          <ThemedText style={styles.settingArrow}>›</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem}>
-          <ThemedText style={styles.settingLabel}>🔒 Privacy Settings</ThemedText>
-          <ThemedText style={styles.settingArrow}>›</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem}>
-          <ThemedText style={styles.settingLabel}>📱 App Preferences</ThemedText>
-          <ThemedText style={styles.settingArrow}>›</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem}>
-          <ThemedText style={styles.settingLabel}>❓ Help & Support</ThemedText>
-          <ThemedText style={styles.settingArrow}>›</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
+      {/* Settings section removed as per requirements */}
 
       {/* Logout Button */}
       <ThemedView style={styles.section}>
@@ -815,5 +866,19 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  photoContainer: {
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  photoThumbnail: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  photoDate: {
+    fontSize: 10,
+    marginTop: 4,
+    opacity: 0.7,
   },
 });
