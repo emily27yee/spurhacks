@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Image } from 'expo-image';
 import { Platform, StyleSheet, ScrollView, TouchableOpacity, View, Dimensions, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -14,6 +15,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { userGroups, isLoading: groupsLoading, createGroup } = useGroups();
+  const router = useRouter();
   
   // Debug: Log groups in home screen
   useEffect(() => {
@@ -99,7 +101,10 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </ThemedView>
-        <TouchableOpacity style={[styles.addPhotoButton, { backgroundColor: colors.tint }]}>
+        <TouchableOpacity 
+          style={[styles.addPhotoButton, { backgroundColor: colors.tint }]}
+          onPress={() => router.push('/camera')}
+        >
           <ThemedText style={[styles.addPhotoText, { color: colors.buttonText }]}>📷 Take Today's Photo</ThemedText>
         </TouchableOpacity>
       </ThemedView>

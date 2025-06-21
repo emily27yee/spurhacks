@@ -9,6 +9,7 @@ export interface Group {
   memberCount: number;
   userRole: 'captain' | 'member' | null;
   isUserMember: boolean;
+  todaydata?: string;
 }
 
 export const useGroups = () => {
@@ -54,6 +55,7 @@ export const useGroups = () => {
           memberCount: members.length,
           userRole: userMember?.role || null,
           isUserMember: !!userMember,
+          todaydata: groupData.todaydata,
         };
       });
 
@@ -88,6 +90,7 @@ export const useGroups = () => {
           memberCount: members.length,
           userRole: userMember?.role || null,
           isUserMember: !!userMember,
+          todaydata: groupData.todaydata,
         };
       });
 

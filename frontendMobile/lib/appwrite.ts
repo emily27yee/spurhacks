@@ -505,4 +505,29 @@ export const appwriteDatabase = {
       throw error;
     }
   },
+
+  // Helper to add/update user's todaydata photo entry in a group
+  addPhotoToGroupTodayData: async (userId: string, groupId: string, photoId: string) => {
+    try {
+      const groupDoc = await appwriteDatabase.getGroupData(groupId);
+      let todayDataObj: Record<string, string> = {};
+      if (groupDoc.todaydata) {
+        try {
+          todayDataObj = JSON.parse(groupDoc.todaydata);
+        } catch {}
+      }
+      todayDataObj[userId] = photoId;
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        groupId,
+        { todaydata: JSON.stringify(todayDataObj) }
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating todaydata for group:', error);
+      throw error;
+    }
+  },
 }; 

@@ -43,7 +43,7 @@ export default function CameraScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const { user } = useAuth();
-  const { userGroups, isLoading: groupsLoading } = useGroups();
+  const { userGroups, isLoading: groupsLoading, fetchUserGroups } = useGroups();
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [showCamera, setShowCamera] = useState(false);
@@ -56,6 +56,23 @@ export default function CameraScreen() {
 
   const todaysPrompt = getTodaysPrompt();
 
+  // Determine groups where user hasn't uploaded today
+  const availableGroups = React.useMemo(() => {
+    if (!user) return [] as any[];
+    const filtered = userGroups.filter((g: any) => {
+      try {
+        const td = g.todaydata ? JSON.parse(g.todaydata) : {};
+        const hasUploaded = !!td[user.$id];
+        console.log(`Group ${g.name}: todaydata=${g.todaydata}, hasUploaded=${hasUploaded}`);
+        return !hasUploaded;
+      } catch {
+        return true;
+      }
+    });
+    console.log(`Available groups: ${filtered.length}/${userGroups.length}`);
+    return filtered;
+  }, [userGroups, user]);
+
   const handleTakePhoto = async () => {
     if (!permission) {
       const permissionResult = await requestPermission();
@@ -65,7 +82,7 @@ export default function CameraScreen() {
       }
     }
 
-    if (userGroups.length === 0) {
+    if (availableGroups.length === 0) {
       Alert.alert(
         "Join a Group First",
         "You need to be part of a group to share photos. Go to your profile to join or create a group!"
@@ -77,7 +94,7 @@ export default function CameraScreen() {
   };
 
   const handlePickImage = async () => {
-    if (userGroups.length === 0) {
+    if (availableGroups.length === 0) {
       Alert.alert(
         "Join a Group First",
         "You need to be part of a group to share photos. Go to your profile to join or create a group!"
@@ -142,12 +159,21 @@ export default function CameraScreen() {
 
     setUploading(true);
     try {
-      await appwriteDatabase.uploadPhoto(
+      const result = await appwriteDatabase.uploadPhoto(
         selectedImage,
         user.$id,
         selectedGroups,
         todaysPrompt
       );
+
+      // Update todaydata for each selected group
+      if (result.photoId) {
+        await Promise.all(
+          selectedGroups.map((gid) =>
+            appwriteDatabase.addPhotoToGroupTodayData(user.$id, gid, result.photoId)
+          )
+        );
+      }
 
       // Clean up temporary photo if it was taken with the app
       if (isTakenPhoto && selectedImage) {
@@ -162,6 +188,7 @@ export default function CameraScreen() {
             setSelectedGroups([]);
             setShowGroupSelector(false);
             setIsTakenPhoto(false);
+            fetchUserGroups(true);
           }
         }
       ]);
@@ -414,23 +441,23 @@ export default function CameraScreen() {
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.button, userGroups.length === 0 && styles.disabledButton]}
+            style={[styles.button, availableGroups.length === 0 && styles.disabledButton]}
             onPress={handleTakePhoto}
-            disabled={userGroups.length === 0}
+            disabled={availableGroups.length === 0}
           >
             <Text style={styles.buttonText}>📸 Take Photo</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, userGroups.length === 0 && styles.disabledButton]}
+            style={[styles.button, availableGroups.length === 0 && styles.disabledButton]}
             onPress={handlePickImage}
-            disabled={userGroups.length === 0}
+            disabled={availableGroups.length === 0}
           >
             <Text style={styles.buttonText}>🖼️ Choose from Library</Text>
           </TouchableOpacity>
         </View>
 
-        {userGroups.length === 0 && (
+        {availableGroups.length === 0 && (
           <Text style={styles.noGroupsText}>
             Join or create a group in your profile to start sharing photos!
           </Text>
@@ -458,7 +485,7 @@ export default function CameraScreen() {
             )}
 
             <ScrollView style={styles.groupsList}>
-              {userGroups.map((group) => (
+              {availableGroups.map((group) => (
                 <TouchableOpacity
                   key={group.$id}
                   style={[
@@ -492,6 +519,7 @@ export default function CameraScreen() {
                   setSelectedImage(null);
                   setSelectedGroups([]);
                   setIsTakenPhoto(false);
+                  fetchUserGroups(true);
                 }}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
