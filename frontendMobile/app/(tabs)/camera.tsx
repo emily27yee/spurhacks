@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useGroups } from '@/hooks/useGroups';
 import { appwriteDatabase } from '@/lib/appwrite';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useLocalSearchParams, router } from 'expo-router';
 
 // Daily prompts (hardcoded for now)
 const DAILY_PROMPTS = [
@@ -87,9 +88,24 @@ export default function CameraScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);  const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [isTakenPhoto, setIsTakenPhoto] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+
+  // If the page is opened with ?mode=library, trigger the image picker automatically once.
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const hasAutoOpened = useRef(false);
+
+  useEffect(() => {
+    if (!hasAutoOpened.current && mode === 'library') {
+      // Delay slightly to ensure the component has mounted and permissions are fetched
+      setTimeout(() => {
+        handlePickImage();
+      }, 300);
+      hasAutoOpened.current = true;
+    }
+  }, [mode]);
 
   const todaysPrompt = getTodaysPrompt();
 
@@ -109,6 +125,14 @@ export default function CameraScreen() {
     console.log(`Available groups: ${filtered.length}/${userGroups.length}`);
     return filtered;
   }, [userGroups, user]);
+
+  // Check if user should be redirected to waiting screen
+  useEffect(() => {
+    if (!groupsLoading && availableGroups.length === 0 && userGroups.length > 0) {
+      // User has uploaded to all groups, redirect to waiting screen
+      router.replace('/waiting-for-activities' as any);
+    }
+  }, [availableGroups, userGroups, groupsLoading]);
   const handleTakePhoto = async () => {
     if (!permission?.granted) {
       const permissionResult = await requestPermission();
@@ -252,43 +276,66 @@ export default function CameraScreen() {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: '#F5EFE6', // Beige background to match mock-up
     },
-    content: {
+    topScribble: {
+      position: 'absolute',
+      top: 60,
+      right: 30,
+      width: 120,
+      height: 40,
+      borderWidth: 5,
+      borderColor: '#E85D42',
+      transform: [{ rotate: '15deg' }],
+    },
+    contentWrapper: {
       flex: 1,
-      padding: 20,
+      justifyContent: 'center',
+      paddingHorizontal: 32,
     },
-    promptContainer: {
-      backgroundColor: colors.tint,
-      padding: 20,
-      borderRadius: 15,
-      marginBottom: 30,
-      alignItems: 'center',
-    },
-    promptTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: colors.background,
+    promptLabel: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#E85D42',
       marginBottom: 8,
     },
     promptText: {
-      fontSize: 16,
-      color: colors.background,
-      textAlign: 'center',
+      fontSize: 36,
+      fontWeight: '700',
+      lineHeight: 42,
+      color: '#1C1C1C',
+      marginBottom: 48,
     },
-    buttonContainer: {
-      gap: 15,
+    buttonGroup: {
+      gap: 20,
     },
     button: {
-      backgroundColor: colors.tint,
-      padding: 18,
-      borderRadius: 12,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
+      backgroundColor: '#F7C52D',
+      borderRadius: 16,
+      paddingVertical: 18,
+      paddingHorizontal: 24,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 8,
     },
-    buttonText: {
-      color: colors.background,
-      fontSize: 16,
+    buttonTitle: {
+      fontSize: 18,
       fontWeight: '600',
+      color: '#1C1C1C',
+      textTransform: 'lowercase',
+    },
+    buttonArrow: {
+      fontSize: 26,
+      fontWeight: 'bold',
+      color: '#1C1C1C',
     },
     disabledButton: {
       backgroundColor: colors.tabIconDefault,
@@ -443,7 +490,7 @@ export default function CameraScreen() {
             style={[styles.button, { marginTop: 20, width: 200 }]}
             onPress={requestPermission}
           >
-            <Text style={styles.buttonText}>Grant Permission</Text>
+            <Text style={styles.buttonTitle}>Grant Permission</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -515,38 +562,44 @@ export default function CameraScreen() {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
-        <View style={styles.promptContainer}>
-          <Text style={styles.promptTitle}>Today's Prompt</Text>
+    return (
+    <>
+      <View style={styles.container}>
+        {/* Decorative scribble */}
+        <View style={styles.topScribble} />
+
+        {/* Prompt content */}
+        <View style={styles.contentWrapper}>
+          <Text style={styles.promptLabel}>PROMPT</Text>
           <Text style={styles.promptText}>{todaysPrompt}</Text>
+
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity 
+              style={[styles.button, availableGroups.length === 0 && styles.disabledButton]} 
+              onPress={handleTakePhoto}
+              disabled={availableGroups.length === 0}
+            >
+              <Text style={styles.buttonTitle}>take photo</Text>
+              <Text style={styles.buttonArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.button, availableGroups.length === 0 && styles.disabledButton]} 
+              onPress={handlePickImage}
+              disabled={availableGroups.length === 0}
+            >
+              <Text style={styles.buttonTitle}>choose from library</Text>
+              <Text style={styles.buttonArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {availableGroups.length === 0 && (
+            <Text style={styles.noGroupsText}>
+              Join or create a group in your profile to start sharing photos!
+            </Text>
+          )}
         </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, availableGroups.length === 0 && styles.disabledButton]}
-            onPress={handleTakePhoto}
-            disabled={availableGroups.length === 0}
-          >
-            <Text style={styles.buttonText}>📸 Take Photo</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, availableGroups.length === 0 && styles.disabledButton]}
-            onPress={handlePickImage}
-            disabled={availableGroups.length === 0}
-          >
-            <Text style={styles.buttonText}>🖼️ Choose from Library</Text>
-          </TouchableOpacity>
-        </View>
-
-        {availableGroups.length === 0 && (
-          <Text style={styles.noGroupsText}>
-            Join or create a group in your profile to start sharing photos!
-          </Text>
-        )}
-      </ScrollView>
+      </View>
 
       {/* Group Selection Modal */}
       <Modal
@@ -625,6 +678,6 @@ export default function CameraScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </>
   );
 } 

@@ -17,6 +17,8 @@ import { useGroups } from '@/hooks/useGroups';
 import { appwriteDatabase } from '@/lib/appwrite';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import WaitingForActivities from './WaitingForActivities';
+import WaitingForResults from './WaitingForResults';
 
 interface GamesProps {
   selectedGroupId: string;
@@ -46,6 +48,8 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   const [activityActive, setActivityActive] = useState(false);
   const [resultsReleased, setResultsReleased] = useState(false);
   const [isNewDay, setIsNewDay] = useState(false);
+  const [showWaitingForActivities, setShowWaitingForActivities] = useState(false);
+  const [showWaitingForResults, setShowWaitingForResults] = useState(false);
   const commentInputRef = useRef<TextInput>(null);
 
   const selectedGroup = userGroups.find(g => g.$id === selectedGroupId);
@@ -87,7 +91,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
         hasEmptyVotes,
         hasEmptyComments
       });
-      
+
       // Detect game type
       const currentGameType = detectGameType();
       setGameType(currentGameType);
@@ -187,6 +191,49 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                 setAssignedPhotoId('waiting-for-all');
               });
           }
+        }
+      }
+
+      // Check if we should show waiting screens
+      if (!newDay && !groupData.activityactive) {
+        // Photos submitted but activity not active yet
+        setShowWaitingForActivities(true);
+        setShowWaitingForResults(false);
+      } else {
+        setShowWaitingForActivities(false);
+        
+        // Check if user has completed activity but results not released
+        if (groupData.activityactive && !groupData.releaseresults) {
+          let userCompleted = false;
+          if (currentGameType === 'voting') {
+            let todayVotes: Record<string, string> = {};
+            if (groupData.todayvotes) {
+              try {
+                todayVotes = JSON.parse(groupData.todayvotes);
+                userCompleted = user ? !!todayVotes[user.$id] : false;
+              } catch (e) {
+                console.error('Error parsing todayvotes for waiting check:', e);
+              }
+            }
+          } else {
+            let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
+            if (groupData.todaycomments) {
+              try {
+                todayComments = JSON.parse(groupData.todaycomments);
+                userCompleted = user ? !!(todayComments[user.$id]?.comment?.trim()) : false;
+              } catch (e) {
+                console.error('Error parsing todaycomments for waiting check:', e);
+              }
+            }
+          }
+          
+          if (userCompleted) {
+            setShowWaitingForResults(true);
+          } else {
+            setShowWaitingForResults(false);
+          }
+        } else {
+          setShowWaitingForResults(false);
         }
       }
       
@@ -741,6 +788,32 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
           Choose a group to start playing with photos!
         </Text>
       </View>
+    );
+  }
+
+  // Show waiting screens if needed
+  if (showWaitingForActivities) {
+    return (
+      <WaitingForActivities 
+        selectedGroupId={selectedGroupId}
+        onActivityReady={() => {
+          setShowWaitingForActivities(false);
+          loadGameData(); // Reload to get updated activity status
+        }}
+      />
+    );
+  }
+
+  if (showWaitingForResults) {
+    return (
+      <WaitingForResults 
+        selectedGroupId={selectedGroupId}
+        gameType={gameType}
+        onResultsReady={() => {
+          setShowWaitingForResults(false);
+          loadGameData(); // Reload to get updated results
+        }}
+      />
     );
   }
 
