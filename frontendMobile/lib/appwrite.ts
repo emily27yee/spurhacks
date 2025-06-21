@@ -16,6 +16,7 @@ export const appwriteConfig = {
   userDataCollectionId: 'userdata',
   groupDataCollectionId: 'groupdata',
   photoDataCollectionId: 'photodata',
+  gameActivityCollectionId: 'gameactivities',
   photosStorageBucketId: 'photos',
 };
 
@@ -505,7 +506,6 @@ export const appwriteDatabase = {
       throw error;
     }
   },
-
   // Helper to add/update user's todaydata photo entry in a group
   addPhotoToGroupTodayData: async (userId: string, groupId: string, photoId: string) => {
     try {
@@ -530,4 +530,385 @@ export const appwriteDatabase = {
       throw error;
     }
   },
-}; 
+
+  // Game Activity Functions
+    // Get or create game activity for a group and game prompt
+  getGameActivity: async (groupId: string, gamePromptId: string) => {
+    try {
+      // Try to find existing game activity
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        [
+          Query.equal('groupId', groupId),
+          Query.equal('gamePromptId', gamePromptId)
+        ]
+      );
+
+      if (response.documents.length > 0) {
+        const activity = response.documents[0] as any;
+        
+        // Parse JSON fields
+        const parsedActivity = {
+          ...activity,
+          photos: JSON.parse(activity.photos || '[]'),
+          userActivities: JSON.parse(activity.userActivities || '{}'),
+        };
+
+        // Check if this is a comment game and needs photo assignment
+        await appwriteDatabase.ensurePhotoAssignment(parsedActivity);
+        
+        return parsedActivity;
+      }
+
+      // Create new game activity if it doesn't exist
+      const newActivity = {
+        groupId,
+        gamePromptId,
+        photos: JSON.stringify([]),
+        userActivities: JSON.stringify({}),
+        status: 'waiting_for_photos',
+        resultsAvailable: false,
+      };
+
+      const created = await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        ID.unique(),
+        newActivity
+      );
+
+      // Parse JSON fields for return
+      return {
+        ...created,
+        photos: [],
+        userActivities: {},
+      };
+    } catch (error) {
+      console.error('Error getting/creating game activity:', error);
+      throw error;
+    }
+  },
+  // Ensure photo assignment for comment games
+  ensurePhotoAssignment: async (activity: any) => {
+    try {
+      const GAME_PROMPTS = [
+        { id: 'lunch_raccoon', type: 'voting' },
+        { id: 'dumb_purchase', type: 'voting' },
+        { id: 'funny_pose', type: 'comment' },
+        { id: 'cartoon_weapon', type: 'comment' },
+      ];
+      
+      const gamePrompt = GAME_PROMPTS.find(p => p.id === activity.gamePromptId);
+      
+      // Only process comment games
+      if (gamePrompt?.type !== 'comment') return;
+
+      // Get group members
+      const group = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        activity.groupId
+      );
+
+      // Parse group members correctly - it should be an array of GroupMember objects
+      let groupMemberObjects;
+      try {
+        groupMemberObjects = JSON.parse(group.members || '[]');
+      } catch (parseError) {
+        console.error('Failed to parse group members:', parseError);
+        return;
+      }
+      
+      // Extract just the user IDs from the member objects
+      const groupMembers = groupMemberObjects.map((member: any) => member.userId);
+      const photos = activity.photos || [];
+      let userActivities = activity.userActivities || {};
+
+      console.log('Photo assignment debug:', {
+        gamePromptId: activity.gamePromptId,
+        gameType: gamePrompt?.type,
+        groupMembers,
+        photosCount: photos.length,
+        userActivities
+      });
+
+      // Check if all photos are collected
+      const allPhotosCollected = groupMembers.every((memberId: string) => 
+        photos.some((photo: any) => photo.userId === memberId)
+      );
+
+      // Check if photos have been assigned
+      const photosAssigned = groupMembers.every((memberId: string) => 
+        userActivities[memberId]?.assignedPhotoId
+      );
+
+      console.log('Photo collection status:', {
+        allPhotosCollected,
+        photosAssigned,
+        photosLength: photos.length
+      });
+
+      // If all photos are collected but not assigned, assign them
+      if (allPhotosCollected && !photosAssigned && photos.length > 0) {
+        console.log('Assigning photos for comment game:', activity.gamePromptId);
+        
+        // Assign photos randomly for comment games
+        const shuffledPhotos = [...photos].sort(() => Math.random() - 0.5);
+        
+        groupMembers.forEach((memberId: string, index: number) => {
+          // Assign each user a different photo (not their own if possible)
+          let assignedPhoto = shuffledPhotos[index % shuffledPhotos.length];
+          
+          // Try to avoid assigning users their own photos
+          if (assignedPhoto.userId === memberId && shuffledPhotos.length > 1) {
+            const otherPhotos = shuffledPhotos.filter(p => p.userId !== memberId);
+            if (otherPhotos.length > 0) {
+              assignedPhoto = otherPhotos[index % otherPhotos.length];
+            }
+          }
+          
+          userActivities[memberId] = {
+            ...userActivities[memberId],
+            completed: userActivities[memberId]?.completed || false,
+            assignedPhotoId: assignedPhoto.id,
+          };
+        });
+
+        // Update the database
+        await databases.updateDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.gameActivityCollectionId,
+          activity.$id,
+          {
+            userActivities: JSON.stringify(userActivities),
+            status: 'waiting_for_activities'
+          }
+        );
+
+        // Update the activity object
+        activity.userActivities = userActivities;
+        activity.status = 'waiting_for_activities';
+      }
+    } catch (error) {
+      console.error('Error ensuring photo assignment:', error);
+      // Don't throw - this is a helper function
+    }
+  },
+
+  // Submit a vote for a voting game
+  submitGameVote: async (activityId: string, userId: string, photoId: string) => {
+    try {
+      const activity = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        activityId
+      );
+
+      const userActivities = JSON.parse(activity.userActivities || '{}');
+      userActivities[userId] = {
+        ...userActivities[userId],
+        completed: true,
+        vote: photoId,
+      };
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        activityId,
+        {
+          userActivities: JSON.stringify(userActivities)
+        }
+      );
+
+      // Check if all users have completed and update results availability
+      await appwriteDatabase.checkAndUpdateGameResults(activityId);
+
+      return true;
+    } catch (error) {
+      console.error('Error submitting game vote:', error);
+      throw error;
+    }
+  },
+
+  // Submit a comment for a comment game
+  submitGameComment: async (activityId: string, userId: string, photoId: string, comment: string) => {
+    try {
+      const activity = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        activityId
+      );
+
+      const userActivities = JSON.parse(activity.userActivities || '{}');
+      userActivities[userId] = {
+        ...userActivities[userId],
+        completed: true,
+        comment,
+        assignedPhotoId: photoId,
+      };
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        activityId,
+        {
+          userActivities: JSON.stringify(userActivities)
+        }
+      );
+
+      // Check if all users have completed and update results availability
+      await appwriteDatabase.checkAndUpdateGameResults(activityId);
+
+      return true;
+    } catch (error) {
+      console.error('Error submitting game comment:', error);
+      throw error;
+    }
+  },
+
+  // Check if all users have completed activities and update results availability
+  checkAndUpdateGameResults: async (activityId: string) => {
+    try {
+      const activity = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        activityId
+      );      const group = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        activity.groupId
+      );
+
+      // Parse group members correctly
+      let groupMemberObjects;
+      try {
+        groupMemberObjects = JSON.parse(group.members || '[]');
+      } catch (parseError) {
+        console.error('Failed to parse group members in checkAndUpdateGameResults:', parseError);
+        throw parseError;
+      }
+      
+      // Extract just the user IDs from the member objects
+      const groupMembers = groupMemberObjects.map((member: any) => member.userId);
+      const userActivities = JSON.parse(activity.userActivities || '{}');
+
+      // Check if all members have completed their activities
+      const allCompleted = groupMembers.every((memberId: string) => 
+        userActivities[memberId]?.completed === true
+      );
+
+      if (allCompleted && !activity.resultsAvailable) {
+        await databases.updateDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.gameActivityCollectionId,
+          activityId,
+          {
+            status: 'completed',
+            resultsAvailable: true
+          }
+        );
+
+        // TODO: Send notification to all group members
+        console.log('Game results are now available for activity:', activityId);
+      }
+
+      return allCompleted;
+    } catch (error) {
+      console.error('Error checking game results:', error);
+      throw error;
+    }
+  },
+  // Add photo to game activity
+  addPhotoToGameActivity: async (groupId: string, gamePromptId: string, userId: string, photoId: string, photoUri: string) => {
+    try {
+      const activity = await appwriteDatabase.getGameActivity(groupId, gamePromptId);
+      
+      const photos = JSON.parse(activity.photos || '[]');
+      const newPhoto = {
+        id: photoId,
+        userId,
+        uri: photoUri,
+        timestamp: new Date().toISOString(),
+      };
+
+      photos.push(newPhoto);      // Get group members to check if all photos are collected
+      const group = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        groupId
+      );
+
+      // Parse group members correctly - it should be an array of GroupMember objects
+      let groupMemberObjects;
+      try {
+        groupMemberObjects = JSON.parse(group.members || '[]');
+      } catch (parseError) {
+        console.error('Failed to parse group members in addPhotoToGameActivity:', parseError);
+        throw parseError;
+      }
+      
+      // Extract just the user IDs from the member objects
+      const groupMembers = groupMemberObjects.map((member: any) => member.userId);
+      let userActivities = JSON.parse(activity.userActivities || '{}');
+      
+      // Check if all photos are now collected
+      const allPhotosCollected = groupMembers.every((memberId: string) => 
+        photos.some((photo: any) => photo.userId === memberId)
+      );
+
+      // If all photos are collected and this is a comment game, assign photos randomly
+      if (allPhotosCollected) {
+        // Get game prompt to check type
+        const GAME_PROMPTS = [
+          { id: 'lunch_raccoon', type: 'voting' },
+          { id: 'dumb_purchase', type: 'voting' },
+          { id: 'funny_pose', type: 'comment' },
+          { id: 'cartoon_weapon', type: 'comment' },
+        ];
+        
+        const gamePrompt = GAME_PROMPTS.find(p => p.id === gamePromptId);
+        
+        if (gamePrompt?.type === 'comment') {
+          // Assign photos randomly for comment games
+          const shuffledPhotos = [...photos].sort(() => Math.random() - 0.5);
+          
+          groupMembers.forEach((memberId: string, index: number) => {
+            // Assign each user a different photo (not their own if possible)
+            let assignedPhoto = shuffledPhotos[index % shuffledPhotos.length];
+            
+            // Try to avoid assigning users their own photos
+            if (assignedPhoto.userId === memberId && shuffledPhotos.length > 1) {
+              const otherPhotos = shuffledPhotos.filter(p => p.userId !== memberId);
+              if (otherPhotos.length > 0) {
+                assignedPhoto = otherPhotos[index % otherPhotos.length];
+              }
+            }
+            
+            userActivities[memberId] = {
+              ...userActivities[memberId],
+              completed: false,
+              assignedPhotoId: assignedPhoto.id,
+            };
+          });
+        }
+      }
+      
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.gameActivityCollectionId,
+        activity.$id,
+        {
+          photos: JSON.stringify(photos),
+          userActivities: JSON.stringify(userActivities),
+          status: allPhotosCollected ? 'waiting_for_activities' : 'waiting_for_photos'
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error adding photo to game activity:', error);
+      throw error;
+    }
+  },
+};

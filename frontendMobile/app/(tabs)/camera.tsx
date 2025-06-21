@@ -34,9 +34,46 @@ const DAILY_PROMPTS = [
   "Your evening sunset 🌇"
 ];
 
+// Game prompts (matching Games component)
+const GAME_PROMPTS = [
+  {
+    id: 'lunch_raccoon',
+    type: 'voting',
+    photoPrompt: 'Take a photo of your lunch 🍽️',
+    activityPrompt: 'Vote on which meal would be better suited to feed a raccoon',
+    dayOffset: 0,
+  },
+  {
+    id: 'dumb_purchase',
+    type: 'voting',
+    photoPrompt: 'Upload a photo of something you really want to buy right now 💸',
+    activityPrompt: 'Vote on which would be the dumbest purchase',
+    dayOffset: 1,
+  },
+  {
+    id: 'funny_pose',
+    type: 'comment',
+    photoPrompt: 'Take a photo of yourself in a funny pose 🤪',
+    activityPrompt: 'What is this person doing?',
+    dayOffset: 2,
+  },
+  {
+    id: 'cartoon_weapon',
+    type: 'comment',
+    photoPrompt: 'Take a photo of something in your room that could be used as a weapon in a cartoon ⚔️',
+    activityPrompt: 'Who would be most likely to use that weapon in a cartoon?',
+    dayOffset: 3,
+  },
+];
+
 const getTodaysPrompt = () => {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
   return DAILY_PROMPTS[dayOfYear % DAILY_PROMPTS.length];
+};
+
+const getTodaysGamePrompt = () => {
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+  return GAME_PROMPTS[dayOfYear % GAME_PROMPTS.length];
 };
 
 export default function CameraScreen() {
@@ -164,14 +201,26 @@ export default function CameraScreen() {
         user.$id,
         selectedGroups,
         todaysPrompt
-      );
-
-      // Update todaydata for each selected group
+      );      // Update todaydata for each selected group
       if (result.photoId) {
         await Promise.all(
-          selectedGroups.map((gid) =>
-            appwriteDatabase.addPhotoToGroupTodayData(user.$id, gid, result.photoId)
-          )
+          selectedGroups.map(async (gid) => {
+            await appwriteDatabase.addPhotoToGroupTodayData(user.$id, gid, result.photoId);
+              // Also add to today's game activity
+            try {
+              const photoUrl = `https://nyc.cloud.appwrite.io/v1/storage/buckets/photos/files/${result.photoId}/view?project=dumpsterfire`;
+              await appwriteDatabase.addPhotoToGameActivity(
+                gid, 
+                getTodaysGamePrompt().id, 
+                user.$id, 
+                result.photoId, 
+                photoUrl
+              );
+            } catch (gameError) {
+              console.log('Note: Could not add to game activity:', gameError);
+              // Don't fail the upload if game integration fails
+            }
+          })
         );
       }
 

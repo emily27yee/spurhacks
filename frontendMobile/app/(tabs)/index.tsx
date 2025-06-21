@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Image } from 'expo-image';
-import { Platform, StyleSheet, ScrollView, TouchableOpacity, View, Dimensions, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { Platform, StyleSheet, ScrollView, TouchableOpacity, View, Dimensions, Alert, Modal, TextInput, ActivityIndicator, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import Games from '@/components/Games';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useGroups } from '@/hooks/useGroups';
@@ -21,11 +22,12 @@ export default function HomeScreen() {
   useEffect(() => {
     console.log('Home screen - userGroups:', userGroups);
   }, [userGroups]);
-
   // Modal states
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [showGames, setShowGames] = useState(false);
 
   // Mock data for demonstration
   const dailyPhotos = [
@@ -50,7 +52,6 @@ export default function HomeScreen() {
     const index = groupId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
   };
-
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
       Alert.alert('Error', 'Please enter a group name');
@@ -69,6 +70,40 @@ export default function HomeScreen() {
       setIsCreatingGroup(false);
     }
   };
+
+  const handleGroupSelect = (groupId: string) => {
+    setSelectedGroupId(groupId);
+    setShowGames(true);
+  };
+
+  const handleNavigateToCamera = () => {
+    router.push('/camera');
+  };
+
+  // Auto-select first group if only one exists
+  useEffect(() => {
+    if (userGroups.length === 1 && !selectedGroupId) {
+      setSelectedGroupId(userGroups[0].$id);
+    }
+  }, [userGroups]);
+  if (showGames && selectedGroupId) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.gamesHeader}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => setShowGames(false)}
+          >
+            <ThemedText style={[styles.backButtonText, { color: colors.tint }]}>← Back</ThemedText>
+          </TouchableOpacity>
+        </View>
+        <Games 
+          selectedGroupId={selectedGroupId}
+          onNavigateToCamera={handleNavigateToCamera}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -146,10 +181,13 @@ export default function HomeScreen() {
               <ThemedView style={styles.emptyGroupsContainer}>
                 <ThemedText style={styles.emptyGroupsText}>You haven't joined any groups yet.</ThemedText>
                 <ThemedText style={styles.emptyGroupsSubtext}>Create a new group or join existing ones to get started!</ThemedText>
-              </ThemedView>
-            ) : (
+              </ThemedView>            ) : (
               userGroups.map((group) => (
-                <TouchableOpacity key={group.$id} style={[styles.groupCard, { borderLeftColor: getGroupColor(group.$id) }]}>
+                <TouchableOpacity 
+                  key={group.$id} 
+                  style={[styles.groupCard, { borderLeftColor: getGroupColor(group.$id) }]}
+                  onPress={() => handleGroupSelect(group.$id)}
+                >
                   <ThemedView style={styles.groupInfo}>
                     <ThemedText style={styles.groupName}>{group.name}</ThemedText>
                     <ThemedView style={styles.groupMeta}>
@@ -158,6 +196,9 @@ export default function HomeScreen() {
                         <ThemedText style={[styles.roleText, { color: colors.tint }]}>Captain</ThemedText>
                       )}
                     </ThemedView>
+                    <ThemedText style={[styles.gamePrompt, { color: colors.tabIconDefault }]}>
+                      🎮 Tap to play daily games
+                    </ThemedText>
                   </ThemedView>
                   <ThemedView style={[styles.groupIndicator, { backgroundColor: getGroupColor(group.$id) }]} />
                 </TouchableOpacity>
@@ -393,11 +434,15 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 8,
     backgroundColor: 'rgba(0, 122, 255, 0.1)',
-  },
-  groupIndicator: {
+  },  groupIndicator: {
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+  gamePrompt: {
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   actionGrid: {
     flexDirection: 'row',
@@ -481,8 +526,21 @@ const styles = StyleSheet.create({
   createButton: {
     minHeight: 44,
     justifyContent: 'center',
+  },  createButtonText: {
+    fontWeight: '600',
   },
-  createButtonText: {
+  // Games navigation styles
+  gamesHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  backButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
     fontWeight: '600',
   },
 });
