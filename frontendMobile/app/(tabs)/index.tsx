@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Image } from 'expo-image';
 import { Platform, StyleSheet, ScrollView, TouchableOpacity, View, Dimensions, Alert, Modal, TextInput, ActivityIndicator, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -17,6 +17,7 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme ?? 'light'];
   const { userGroups, isLoading: groupsLoading, createGroup } = useGroups();
   const router = useRouter();
+  const params = useLocalSearchParams();
   
   // Debug: Log groups in home screen
   useEffect(() => {
@@ -86,6 +87,19 @@ export default function HomeScreen() {
       setSelectedGroupId(userGroups[0].$id);
     }
   }, [userGroups]);
+
+  // Handle URL parameters for automatic games navigation
+  useEffect(() => {
+    if (params.showGames === 'true' && params.groupId && userGroups.length > 0) {
+      const groupExists = userGroups.find(g => g.$id === params.groupId);
+      if (groupExists) {
+        setSelectedGroupId(params.groupId as string);
+        setShowGames(true);
+        // Clear the URL parameters after handling them
+        router.replace('/(tabs)');
+      }
+    }
+  }, [params, userGroups]);
   if (showGames && selectedGroupId) {
     const selectedGroup = userGroups.find(g => g.$id === selectedGroupId)
     return (

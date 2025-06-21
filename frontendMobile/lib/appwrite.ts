@@ -427,6 +427,10 @@ export const appwriteDatabase = {
         groupId,
         { todayvotes: JSON.stringify(todayVotes) }
       );
+
+      // Check if all members have voted and release results if so
+      await appwriteDatabase.checkAndReleaseResults(groupId, 'voting');
+      
       return true;
     } catch (error) {
       console.error('Error submitting group vote:', error);
@@ -457,10 +461,123 @@ export const appwriteDatabase = {
         groupId,
         { todaycomments: JSON.stringify(todayComments) }
       );
+
+      // Check if all members have commented and release results if so
+      await appwriteDatabase.checkAndReleaseResults(groupId, 'comment');
+      
       return true;
     } catch (error) {
       console.error('Error submitting group comment:', error);
       throw error;
+    }
+  },
+
+  // Check if all members have completed their activities and release results
+  checkAndReleaseResults: async (groupId: string, gameType: 'voting' | 'comment') => {
+    try {
+      const groupDoc = await appwriteDatabase.getGroupData(groupId);
+      
+      // Parse group members to get total count
+      let groupMembers: any[] = [];
+      if (groupDoc.members) {
+        try {
+          groupMembers = JSON.parse(groupDoc.members);
+        } catch (e) {
+          console.error('Error parsing group members:', e);
+          return false;
+        }
+      }
+
+      const totalMembers = groupMembers.length;
+      if (totalMembers === 0) return false;
+
+      let completedCount = 0;
+
+      if (gameType === 'voting') {
+        // Count completed votes
+        let todayVotes: Record<string, string> = {};
+        if (groupDoc.todayvotes) {
+          try {
+            todayVotes = JSON.parse(groupDoc.todayvotes);
+            completedCount = Object.keys(todayVotes).length;
+          } catch (e) {
+            console.error('Error parsing todayvotes:', e);
+            return false;
+          }
+        }
+      } else {
+        // Count completed comments (only those with actual content)
+        let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
+        if (groupDoc.todaycomments) {
+          try {
+            todayComments = JSON.parse(groupDoc.todaycomments);
+            completedCount = Object.values(todayComments).filter(
+              c => c.comment && c.comment.trim().length > 0
+            ).length;
+          } catch (e) {
+            console.error('Error parsing todaycomments:', e);
+            return false;
+          }
+        }
+      }
+
+      console.log(`Activity completion check: ${completedCount}/${totalMembers} members completed ${gameType}`);
+
+      // If all members have completed and results aren't already released
+      if (completedCount >= totalMembers && !groupDoc.releaseresults) {
+        await databases.updateDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.groupDataCollectionId,
+          groupId,
+          { releaseresults: true }
+        );
+        
+        console.log(`Results released for group ${groupId} - all ${totalMembers} members completed ${gameType}`);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking and releasing results:', error);
+      return false;
+    }
+  },
+
+  // Helper function to check and release results for all active groups (can be called periodically)
+  checkAllGroupsForResultRelease: async () => {
+    try {
+      // Get all groups with active activities but unreleased results
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        [
+          Query.equal('activityactive', true),
+          Query.equal('releaseresults', false)
+        ]
+      );
+
+      console.log(`Checking ${response.documents.length} groups for result release`);
+
+      for (const group of response.documents) {
+        // Determine game type based on which field has data
+        let gameType: 'voting' | 'comment' = 'voting';
+        
+        const hasVotes = group.todayvotes && group.todayvotes.trim() !== '' && group.todayvotes !== '{}';
+        const hasComments = group.todaycomments && group.todaycomments.trim() !== '' && group.todaycomments !== '{}';
+        
+        if (hasComments) {
+          gameType = 'comment';
+        } else if (hasVotes) {
+          gameType = 'voting';
+        } else {
+          // No activities yet, skip this group
+          continue;
+        }
+
+        await appwriteDatabase.checkAndReleaseResults(group.$id, gameType);
+      }
+    } catch (error) {
+      console.error('Error checking all groups for result release:', error);
     }
   },
 

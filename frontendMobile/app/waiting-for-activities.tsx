@@ -41,8 +41,8 @@ export default function WaitingForActivitiesPage() {
   }, [user, userGroups, isLoading]);
 
   const handleActivityReady = () => {
-    // Go back to games list (explore index)
-    router.replace('/(tabs)');
+    // Go to games for this specific group
+    router.replace(`/(tabs)?showGames=true&groupId=${groupId}`);
   };
 
   const handleBack = () => router.replace('/(tabs)/camera');

@@ -8,7 +8,7 @@ import {
   Image,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { appwriteDatabase } from '@/lib/appwrite';
+import { appwriteDatabase, appwriteConfig, databases } from '@/lib/appwrite';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -90,6 +90,21 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
           if (groupData.activityactive) {
             onActivityReady();
             return;
+          } else {
+            // All photos submitted but activity not active yet - activate it
+            try {
+              await databases.updateDocument(
+                appwriteConfig.databaseId,
+                appwriteConfig.groupDataCollectionId,
+                selectedGroupId,
+                { activityactive: true }
+              );
+              console.log('Activated activity for group:', selectedGroupId);
+              onActivityReady();
+              return;
+            } catch (error) {
+              console.error('Error activating activity:', error);
+            }
           }
         }
         

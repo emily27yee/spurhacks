@@ -31,6 +31,9 @@ export default function WaitingForResults({ selectedGroupId, gameType, onResults
     
     const checkResultsStatus = async () => {
       try {
+        // First, check if results should be released for this group
+        await appwriteDatabase.checkAndReleaseResults(selectedGroupId, gameType);
+        
         const groupData = await appwriteDatabase.getGroupData(selectedGroupId);
         
         // Parse group members to get total count

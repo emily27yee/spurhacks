@@ -57,6 +57,11 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   useEffect(() => {
     if (selectedGroupId && user) {
       loadGameData();
+      
+      // Also check if any groups are ready for result release
+      appwriteDatabase.checkAllGroupsForResultRelease().catch(error => {
+        console.log('Note: Could not check groups for result release:', error);
+      });
     }
   }, [selectedGroupId, user]);
 
