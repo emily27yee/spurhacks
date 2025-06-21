@@ -1,4 +1,12 @@
-import { Client, Account, ID, Databases, Query } from 'appwrite';
+// Use React-Native specific SDK so Storage uploads accept the `{ uri, name, type, size }` object
+import {
+  Client,
+  Account,
+  ID,
+  Databases,
+  Storage,
+  Query,
+} from 'react-native-appwrite';
 
 // Appwrite configuration
 export const appwriteConfig = {
@@ -7,6 +15,8 @@ export const appwriteConfig = {
   databaseId: 'database',
   userDataCollectionId: 'userdata',
   groupDataCollectionId: 'groupdata',
+  photoDataCollectionId: 'photodata',
+  photosStorageBucketId: 'photos',
 };
 
 // Initialize Appwrite client
@@ -19,6 +29,7 @@ client
 // Initialize services
 export const account = new Account(client);
 export const databases = new Databases(client);
+export const storage = new Storage(client);
 
 // Authentication functions
 export const appwriteAuth = {
@@ -101,6 +112,13 @@ export interface GroupData {
   todaydata?: string;
   resultdata?: string;
   gameid?: number;
+}
+
+// Photo data interface
+export interface PhotoData {
+  $id?: string;
+  userid: string;
+  groupid: string;
 }
 
 // Database functions
@@ -377,6 +395,113 @@ export const appwriteDatabase = {
       });
     } catch (error) {
       console.error('Error removing user from group:', error);
+      throw error;
+    }
+  },
+
+  // Photo functions
+  // Upload photo to storage and create photo document
+  uploadPhoto: async (photoUri: string, userId: string, groupIds: string[], prompt: string) => {
+    try {
+      // Create unique photo ID
+      const photoId = ID.unique();
+      
+      console.log('Starting photo upload process...');
+      console.log('Photo URI:', photoUri);
+      console.log('User ID:', userId);
+      console.log('Group IDs:', groupIds);
+      console.log('Storage bucket ID:', appwriteConfig.photosStorageBucketId);
+      
+      // Get file info to determine size
+      const response = await fetch(photoUri);
+      const blob = await response.blob();
+      
+      // For React Native, create file object with all required properties
+      // As per Appwrite docs: name, type, size, uri are all required
+      const file = {
+        uri: photoUri,
+        type: 'image/jpeg',
+        name: `photo_${photoId}.jpg`,
+        size: blob.size, // Actual file size is required
+      };
+      
+      console.log('File object created:', file);
+      console.log('Uploading file with URI:', photoUri);
+      
+      // Upload to storage using React Native approach
+      const uploadResult = await storage.createFile(
+        appwriteConfig.photosStorageBucketId,
+        photoId,
+        file as any // React Native file format, bypass TypeScript
+      );
+      
+      console.log('Upload successful:', uploadResult);
+
+      // Create photo documents for each group
+      const photoDocuments = [];
+      for (const groupId of groupIds) {
+        const photoData: Omit<PhotoData, '$id'> = {
+          userid: userId,
+          groupid: groupId,
+        };
+
+        const document = await databases.createDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.photoDataCollectionId,
+          ID.unique(),
+          photoData
+        );
+        
+        photoDocuments.push(document);
+      }
+
+      return { photoId, photoDocuments };
+    } catch (error: any) {
+      console.error('Error uploading photo:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Error name:', error?.name);
+      console.error('Error message:', error?.message);
+      console.error('Error code:', error?.code);
+      throw error;
+    }
+  },
+
+  // Get photo URL from storage
+  getPhotoUrl: (photoId: string) => {
+    try {
+      return storage.getFileView(appwriteConfig.photosStorageBucketId, photoId);
+    } catch (error) {
+      console.error('Error getting photo URL:', error);
+      throw error;
+    }
+  },
+
+  // Get photos for a group
+  getGroupPhotos: async (groupId: string) => {
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.photoDataCollectionId,
+        [Query.equal('groupid', groupId), Query.orderDesc('timestamp')]
+      );
+      return response.documents as any[];
+    } catch (error) {
+      console.error('Error getting group photos:', error);
+      throw error;
+    }
+  },
+
+  // Get user's photos
+  getUserPhotos: async (userId: string) => {
+    try {
+      const response = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.photoDataCollectionId,
+        [Query.equal('userid', userId), Query.orderDesc('timestamp')]
+      );
+      return response.documents as any[];
+    } catch (error) {
+      console.error('Error getting user photos:', error);
       throw error;
     }
   },
