@@ -111,6 +111,7 @@ export interface GroupData {
   members: string; // JSON string containing GroupMember[]
   pastdata?: string;
   todaydata?: string;
+  todayvotes?: string;
   resultdata?: string;
   gameid?: number;
 }
@@ -186,6 +187,7 @@ export const appwriteDatabase = {
         members: JSON.stringify(groupMembers),
         pastdata: "",
         todaydata: "",
+        todayvotes: "",
         resultdata: "",
         gameid: 0
       };
@@ -396,6 +398,32 @@ export const appwriteDatabase = {
       });
     } catch (error) {
       console.error('Error removing user from group:', error);
+      throw error;
+    }
+  },
+
+  submitGroupVote: async (groupId: string, userId: string, photoId: string) => {
+    try {
+      const groupDoc = await appwriteDatabase.getGroupData(groupId);
+      let todayVotes: Record<string, string> = {};
+      if (groupDoc.todayvotes) {
+        try {
+          todayVotes = JSON.parse(groupDoc.todayvotes);
+        } catch (e) {
+            console.error("Could not parse todayvotes", e)
+        }
+      }
+      todayVotes[userId] = photoId;
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        groupId,
+        { todayvotes: JSON.stringify(todayVotes) }
+      );
+      return true;
+    } catch (error) {
+      console.error('Error submitting group vote:', error);
       throw error;
     }
   },

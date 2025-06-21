@@ -87,6 +87,7 @@ export default function HomeScreen() {
     }
   }, [userGroups]);
   if (showGames && selectedGroupId) {
+    const selectedGroup = userGroups.find(g => g.$id === selectedGroupId)
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.gamesHeader}>
@@ -96,6 +97,11 @@ export default function HomeScreen() {
           >
             <ThemedText style={[styles.backButtonText, { color: colors.tint }]}>← Back</ThemedText>
           </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <ThemedText style={styles.headerTitle}>Photo Games</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>{selectedGroup?.name}</ThemedText>
+          </View>
+          <View style={styles.backButton} />
         </View>
         <Games 
           selectedGroupId={selectedGroupId}
@@ -531,16 +537,30 @@ const styles = StyleSheet.create({
   },
   // Games navigation styles
   gamesHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingTop: Platform.OS === 'android' ? 40 : 10,
     paddingBottom: 10,
   },
   backButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    padding: 8,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 2,
   },
 });
