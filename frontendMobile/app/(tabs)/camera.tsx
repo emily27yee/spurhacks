@@ -50,9 +50,9 @@ export default function CameraScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showGroupSelector, setShowGroupSelector] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [cameraRef, setCameraRef] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);  const [cameraRef, setCameraRef] = useState<CameraView | null>(null);
   const [isTakenPhoto, setIsTakenPhoto] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const todaysPrompt = getTodaysPrompt();
 
@@ -72,9 +72,8 @@ export default function CameraScreen() {
     console.log(`Available groups: ${filtered.length}/${userGroups.length}`);
     return filtered;
   }, [userGroups, user]);
-
   const handleTakePhoto = async () => {
-    if (!permission) {
+    if (!permission?.granted) {
       const permissionResult = await requestPermission();
       if (!permissionResult.granted) {
         Alert.alert("Permission Required", "Camera permission is required to take photos.");
@@ -100,13 +99,12 @@ export default function CameraScreen() {
         "You need to be part of a group to share photos. Go to your profile to join or create a group!"
       );
       return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
+    }    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      presentationStyle: ImagePicker.UIImagePickerPresentationStyle.AUTOMATIC,
     });
 
     if (!result.canceled && result.assets[0]) {
@@ -115,19 +113,19 @@ export default function CameraScreen() {
       setShowGroupSelector(true);
     }
   };
-
   const takePicture = async () => {
-    if (cameraRef) {
-      const photo = await cameraRef.takePictureAsync({
-        quality: 0.8,
-      });
-      
-      // Save the photo to device storage
-      const fileName = `photo_${Date.now()}.jpg`;
-      const newPath = FileSystem.documentDirectory + fileName;
-      
+    if (cameraRef && cameraReady) {
       try {
-        await FileSystem.moveAsync({
+        const photo = await cameraRef.takePictureAsync({
+          quality: 0.8,
+          base64: false,
+          exif: false,
+        });
+        
+        // Save the photo to device storage
+        const fileName = `photo_${Date.now()}.jpg`;
+        const newPath = FileSystem.documentDirectory + fileName;
+          await FileSystem.moveAsync({
           from: photo.uri,
           to: newPath,
         });
@@ -137,9 +135,11 @@ export default function CameraScreen() {
         setShowCamera(false);
         setShowGroupSelector(true);
       } catch (error) {
-        console.error('Error saving photo:', error);
-        Alert.alert('Error', 'Failed to save photo. Please try again.');
+        console.error('Error taking/saving photo:', error);
+        Alert.alert('Error', 'Failed to take photo. Please try again.');
       }
+    } else {
+      Alert.alert('Error', 'Camera is not ready. Please wait a moment and try again.');
     }
   };
 
@@ -367,7 +367,6 @@ export default function CameraScreen() {
       marginTop: 20,
     },
   });
-
   if (!permission) {
     return (
       <SafeAreaView style={styles.container}>
@@ -376,6 +375,27 @@ export default function CameraScreen() {
           <Text style={[styles.noGroupsText, { marginTop: 10 }]}>
             Requesting camera permission...
           </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!permission.granted) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.noGroupsText, { textAlign: 'center', fontSize: 18 }]}>
+            Camera Permission Required
+          </Text>
+          <Text style={[styles.noGroupsText, { marginTop: 10 }]}>
+            This app needs camera access to take photos for sharing with your groups.
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, { marginTop: 20, width: 200 }]}
+            onPress={requestPermission}
+          >
+            <Text style={styles.buttonText}>Grant Permission</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -393,7 +413,6 @@ export default function CameraScreen() {
       </SafeAreaView>
     );
   }
-
   if (showCamera) {
     return (
       <View style={styles.cameraContainer}>
@@ -401,23 +420,33 @@ export default function CameraScreen() {
           style={styles.camera}
           facing={cameraType}
           ref={setCameraRef}
+          onCameraReady={() => setCameraReady(true)}
+          onMountError={(error) => {
+            console.error('Camera mount error:', error);
+            Alert.alert('Camera Error', 'Failed to initialize camera. Please try again.');
+            setShowCamera(false);
+          }}
         />
         <View style={styles.cameraControls}>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => setShowCamera(false)}
+            onPress={() => {
+              setShowCamera(false);
+              setCameraReady(false);
+            }}
           >
             <Text style={{ fontSize: 16, fontWeight: 'bold' }}>✕</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.cameraButton}
+            style={[styles.cameraButton, !cameraReady && { opacity: 0.5 }]}
             onPress={takePicture}
+            disabled={!cameraReady}
           >
             <View style={{
               width: 50,
               height: 50,
               borderRadius: 25,
-              backgroundColor: '#007AFF',
+              backgroundColor: cameraReady ? '#007AFF' : '#cccccc',
             }} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -427,6 +456,12 @@ export default function CameraScreen() {
             <Text style={{ fontSize: 16, fontWeight: 'bold' }}>🔄</Text>
           </TouchableOpacity>
         </View>
+        {!cameraReady && (
+          <View style={[styles.loadingContainer, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }]}>
+            <ActivityIndicator size="large" color="white" />
+            <Text style={{ color: 'white', marginTop: 10 }}>Initializing camera...</Text>
+          </View>
+        )}
       </View>
     );
   }

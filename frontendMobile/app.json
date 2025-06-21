@@ -7,9 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "dumpsterfire",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
+    "newArchEnabled": true,    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to the camera to take photos for sharing with your groups.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select and share photos with your groups."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,9 +25,20 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
+    },    "plugins": [
       "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to take photos for sharing with your groups."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to select images for sharing with your groups."
+        }
+      ],
       [
         "expo-splash-screen",
         {
