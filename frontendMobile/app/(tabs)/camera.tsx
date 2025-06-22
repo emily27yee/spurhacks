@@ -35,47 +35,14 @@ const DAILY_PROMPTS = [
   "Your evening sunset 🌇"
 ];
 
-// Game prompts (matching Games component)
-const GAME_PROMPTS = [
-  {
-    id: 'lunch_raccoon',
-    type: 'voting',
-    photoPrompt: 'Take a photo of your lunch 🍽️',
-    activityPrompt: 'Vote on which meal would be better suited to feed a raccoon',
-    dayOffset: 0,
-  },
-  {
-    id: 'dumb_purchase',
-    type: 'voting',
-    photoPrompt: 'Upload a photo of something you really want to buy right now 💸',
-    activityPrompt: 'Vote on which would be the dumbest purchase',
-    dayOffset: 1,
-  },
-  {
-    id: 'funny_pose',
-    type: 'comment',
-    photoPrompt: 'Take a photo of yourself in a funny pose 🤪',
-    activityPrompt: 'What is this person doing?',
-    dayOffset: 2,
-  },
-  {
-    id: 'cartoon_weapon',
-    type: 'comment',
-    photoPrompt: 'Take a photo of something in your room that could be used as a weapon in a cartoon ⚔️',
-    activityPrompt: 'Who would be most likely to use that weapon in a cartoon?',
-    dayOffset: 3,
-  },
-];
+
 
 const getTodaysPrompt = () => {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
   return DAILY_PROMPTS[dayOfYear % DAILY_PROMPTS.length];
 };
 
-const getTodaysGamePrompt = () => {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  return GAME_PROMPTS[dayOfYear % GAME_PROMPTS.length];
-};
+
 
 export default function CameraScreen() {
   const colorScheme = useColorScheme();
@@ -230,20 +197,6 @@ export default function CameraScreen() {
         await Promise.all(
           selectedGroups.map(async (gid) => {
             await appwriteDatabase.addPhotoToGroupTodayData(user.$id, gid, result.photoId);
-              // Also add to today's game activity
-            try {
-              const photoUrl = `https://nyc.cloud.appwrite.io/v1/storage/buckets/photos/files/${result.photoId}/view?project=dumpsterfire`;
-              await appwriteDatabase.addPhotoToGameActivity(
-                gid, 
-                getTodaysGamePrompt().id, 
-                user.$id, 
-                result.photoId, 
-                photoUrl
-              );
-            } catch (gameError) {
-              console.log('Note: Could not add to game activity:', gameError);
-              // Don't fail the upload if game integration fails
-            }
           })
         );
       }
@@ -253,18 +206,12 @@ export default function CameraScreen() {
         await FileSystem.deleteAsync(selectedImage);
       }
 
-      Alert.alert("Success", "Photo uploaded successfully!", [
-        {
-          text: "OK",
-          onPress: () => {
-            setSelectedImage(null);
-            setSelectedGroups([]);
-            setShowGroupSelector(false);
-            setIsTakenPhoto(false);
-            fetchUserGroups(true);
-          }
-        }
-      ]);
+      // Directly clean up and close modal without showing success alert
+      setSelectedImage(null);
+      setSelectedGroups([]);
+      setShowGroupSelector(false);
+      setIsTakenPhoto(false);
+      fetchUserGroups(true);
     } catch (error) {
       console.error("Upload error:", error);
       Alert.alert("Error", "Failed to upload photo. Please try again.");
@@ -288,10 +235,18 @@ export default function CameraScreen() {
       borderColor: '#E85D42',
       transform: [{ rotate: '15deg' }],
     },
+    topRightImage: {
+      position: 'absolute',
+      top: -70,
+      right: 0,
+      width: 450, // Made smaller (approximately 30% reduction from typical size)
+      height: 450,
+    },
     contentWrapper: {
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: 32,
+      paddingTop: 200, // Shift content down to avoid interfering with top right image
     },
     promptLabel: {
       fontSize: 24,
@@ -300,11 +255,11 @@ export default function CameraScreen() {
       marginBottom: 8,
     },
     promptText: {
-      fontSize: 36,
+      fontSize: 42,
       fontWeight: '700',
-      lineHeight: 42,
+      lineHeight: 48,
       color: '#1C1C1C',
-      marginBottom: 48,
+      marginBottom: -8,
     },
     buttonGroup: {
       gap: 20,
@@ -335,7 +290,7 @@ export default function CameraScreen() {
     buttonArrow: {
       fontSize: 26,
       fontWeight: 'bold',
-      color: '#1C1C1C',
+      color: '#1C1C1C'
     },
     disabledButton: {
       backgroundColor: colors.tabIconDefault,
@@ -376,80 +331,138 @@ export default function CameraScreen() {
     },
     modal: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(28, 28, 28, 0.8)', // Darker overlay to match design
       justifyContent: 'center',
       alignItems: 'center',
     },
     modalContent: {
-      backgroundColor: colors.background,
-      borderRadius: 20,
-      padding: 20,
+      backgroundColor: '#F5EFE6', // Beige background to match main design
+      borderRadius: 24,
+      padding: 24,
       width: '90%',
-      maxHeight: '80%',
+      maxHeight: '85%',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 8,
+      },
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      elevation: 16,
+      borderWidth: 3,
+      borderColor: '#E85D42', // Orange border accent
     },
     modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: colors.text,
-      marginBottom: 15,
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#E85D42', // Orange color like other headings
+      marginBottom: 8,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    modalSubtitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#1C1C1C',
+      marginBottom: 20,
       textAlign: 'center',
     },
     selectedImageContainer: {
       alignItems: 'center',
-      marginBottom: 20,
+      marginBottom: 24,
     },
     selectedImage: {
-      width: 200,
-      height: 200,
-      borderRadius: 15,
-      marginBottom: 10,
+      width: 260,
+      height: 260,
+      borderRadius: 20,
+      marginBottom: 12,
+      borderWidth: 4,
+      borderColor: '#E85D42', // Orange border around image
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 8,
     },
     groupsList: {
-      maxHeight: 200,
-      marginBottom: 20,
+      maxHeight: 220,
+      marginBottom: 24,
     },
     groupItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 15,
-      backgroundColor: colors.background,
-      borderRadius: 10,
-      marginBottom: 10,
-      borderWidth: 1,
-      borderColor: colors.border,
+      padding: 16,
+      backgroundColor: '#FFFFFF', // White background for contrast
+      borderRadius: 16,
+      marginBottom: 12,
+      borderWidth: 2,
+      borderColor: '#E85D42', // Orange border
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
     },
     selectedGroupItem: {
-      backgroundColor: colors.tint,
-      borderColor: colors.tint,
+      backgroundColor: '#F7C52D', // Yellow background when selected
+      borderColor: '#E85D42', // Keep orange border
+      borderWidth: 3, // Thicker border when selected
     },
     groupText: {
-      fontSize: 16,
-      color: colors.text,
-      marginLeft: 10,
+      fontSize: 17,
+      fontWeight: '600',
+      color: '#1C1C1C',
+      marginLeft: 12,
     },
     selectedGroupText: {
-      color: colors.background,
+      color: '#1C1C1C', // Keep dark text even when selected
+      fontWeight: '700',
     },
     modalButtons: {
       flexDirection: 'row',
-      gap: 10,
+      gap: 16,
     },
     modalButton: {
       flex: 1,
-      padding: 15,
-      borderRadius: 10,
+      paddingVertical: 18,
+      paddingHorizontal: 24,
+      borderRadius: 16,
       alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 8,
+      borderWidth: 2,
     },
     cancelButton: {
-      backgroundColor: colors.tabIconDefault,
+      backgroundColor: '#FFFFFF', // White background
+      borderColor: '#E85D42', // Orange border
     },
     uploadButton: {
-      backgroundColor: colors.tint,
+      backgroundColor: '#F7C52D', // Yellow background to match main buttons
+      borderColor: '#E85D42', // Orange border
     },
     modalButtonText: {
-      color: colors.background,
-      fontSize: 16,
-      fontWeight: '600',
+      fontSize: 17,
+      fontWeight: '700',
+      textTransform: 'lowercase',
+    },
+    cancelButtonText: {
+      color: '#E85D42', // Orange text for cancel button
+    },
+    uploadButtonText: {
+      color: '#1C1C1C', // Dark text for upload button
     },
     loadingContainer: {
       flex: 1,
@@ -567,6 +580,13 @@ export default function CameraScreen() {
       <View style={styles.container}>
         {/* Decorative scribble */}
         <View style={styles.topScribble} />
+        
+        {/* Top right image */}
+        <Image 
+          source={require('@/assets/images/img1.png')} 
+          style={styles.topRightImage}
+          resizeMode="contain"
+        />
 
         {/* Prompt content */}
         <View style={styles.contentWrapper}>
@@ -610,12 +630,13 @@ export default function CameraScreen() {
       >
         <View style={styles.modal}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Groups to Share With</Text>
+            <Text style={styles.modalTitle}>Share Photo</Text>
+            <Text style={styles.modalSubtitle}>Select groups to share with</Text>
             
             {selectedImage && (
               <View style={styles.selectedImageContainer}>
                 <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
-                <Text style={[styles.promptText, { color: colors.text }]}>
+                <Text style={[styles.promptText, { color: '#1C1C1C', fontSize: 16, textAlign: 'center' }]}>
                   {todaysPrompt}
                 </Text>
               </View>
@@ -659,7 +680,7 @@ export default function CameraScreen() {
                   fetchUserGroups(true);
                 }}
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
+                <Text style={[styles.modalButtonText, styles.cancelButtonText]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.uploadButton]}
@@ -667,9 +688,9 @@ export default function CameraScreen() {
                 disabled={uploading || selectedGroups.length === 0}
               >
                 {uploading ? (
-                  <ActivityIndicator color={colors.background} />
+                  <ActivityIndicator color="#1C1C1C" />
                 ) : (
-                  <Text style={styles.modalButtonText}>
+                  <Text style={[styles.modalButtonText, styles.uploadButtonText]}>
                     Share ({selectedGroups.length})
                   </Text>
                 )}

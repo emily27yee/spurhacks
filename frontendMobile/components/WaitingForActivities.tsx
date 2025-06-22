@@ -148,6 +148,13 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
     <SafeAreaView style={styles.container}>
       {/* Decorative scribble */}
       <View style={styles.topScribble} />
+      
+      {/* Top image */}
+      <Image 
+        source={require('@/assets/images/img2.png')} 
+        style={styles.topImage}
+        resizeMode="contain"
+      />
 
       <ScrollView contentContainerStyle={styles.contentWrapper}>
         {/* Label */}
@@ -156,8 +163,22 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         <Text style={styles.promptText}>
           {allPhotosSubmitted
             ? 'waiting for game to start'
-            : 'waiting for everyone to upload'}
+            : 'Digging through the dumpster'}
         </Text>
+
+        {/* Photos grid (only show if >0) */}
+        {groupPhotos.length > 0 && (
+          <View style={styles.photosGridWrapper}>
+            <View style={styles.photosGrid}>
+              {groupPhotos.map((photo) => (
+                <Image key={photo.id} source={{ uri: photo.uri }} style={styles.photoThumb} />
+              ))}
+              {Array.from({ length: totalMembers - submittedCount }).map((_, idx) => (
+                <View key={`ph-${idx}`} style={styles.photoPlaceholder} />
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Progress section */}
         <View style={styles.progressContainer}>
@@ -170,21 +191,6 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
             {totalMembers > 0 ? Math.round((submittedCount / totalMembers) * 100) : 0}% complete
           </Text>
         </View>
-
-        {/* Photos grid (only show if >0) */}
-        {groupPhotos.length > 0 && (
-          <View style={styles.photosGridWrapper}>
-            <Text style={styles.photosLabel}>submitted photos</Text>
-            <View style={styles.photosGrid}>
-              {groupPhotos.map((photo) => (
-                <Image key={photo.id} source={{ uri: photo.uri }} style={styles.photoThumb} />
-              ))}
-              {Array.from({ length: totalMembers - submittedCount }).map((_, idx) => (
-                <View key={`ph-${idx}`} style={styles.photoPlaceholder} />
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* What's happening */}
         <View style={styles.statusContainer}>
@@ -199,14 +205,6 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
           </Text>
         </View>
 
-        {/* Additional info if not all photos submitted */}
-        {!allPhotosSubmitted && (
-          <View style={styles.infoContainer}>
-            <Text style={styles.infoText}>
-              still waiting for {totalMembers - submittedCount} more photo{totalMembers - submittedCount !== 1 ? 's' : ''}
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -221,16 +219,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 30,
-    width: 120,
-    height: 40,
-    borderWidth: 5,
+    width: 0,
+    height: 0,
+    borderWidth: 0,
     borderColor: '#E85D42',
     transform: [{ rotate: '15deg' }],
+  },
+  topImage: {
+    position: 'absolute',
+    top: 50,
+    left: -140,
+    // right: 0,
+    height: 220,
+    zIndex: 1,
   },
   contentWrapper: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 32,
+    paddingTop: 180, // Add top padding to accommodate the image
     paddingBottom: 40,
   },
   promptLabel: {
@@ -250,7 +257,10 @@ const styles = StyleSheet.create({
     textTransform: 'lowercase',
   },
   progressContainer: {
-    marginBottom: 40,
+    marginBottom: 20,
+    marginTop: 20,
+    alignSelf: 'center',
+    width: '90%',
   },
   progressBarBg: {
     height: 12,
@@ -314,6 +324,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1C1C1C',
     marginBottom: 8,
+    marginTop: 16,
     textTransform: 'lowercase',
   },
   statusText: {

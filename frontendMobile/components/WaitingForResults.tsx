@@ -69,10 +69,16 @@ export default function WaitingForResults({ selectedGroupId, gameType, onResults
           if (groupData.todaycomments) {
             try {
               todayComments = JSON.parse(groupData.todaycomments);
-              // Count only comments that have actual content
-              completedActivities = Object.values(todayComments).filter(
-                c => c.comment && c.comment.trim().length > 0
-              ).length;
+              // Count members who have actually submitted a comment (not just assigned)
+              completedActivities = groupMembers.filter(member => {
+                const userComment = todayComments[member.userId];
+                return userComment && userComment.comment && userComment.comment.trim().length > 0;
+              }).length;
+              
+              console.log('Comment completion status:');
+              console.log('- Total members:', memberCount);
+              console.log('- Completed comments:', completedActivities);
+              console.log('- Raw comments data:', todayComments);
             } catch (e) {
               console.error('Error parsing todaycomments:', e);
             }
@@ -81,10 +87,17 @@ export default function WaitingForResults({ selectedGroupId, gameType, onResults
 
         setCompletedCount(completedActivities);
 
-        // Check if results are ready
-        if (groupData.releaseresults) {
+        // Check if results are ready - only when ALL members have actually completed
+        const allCompleted = completedActivities >= memberCount && memberCount > 0;
+        
+        // Double check the database flag AND actual completion
+        if (groupData.releaseresults && allCompleted) {
+          console.log('Results ready - all members completed and results released');
           onResultsReady();
           return;
+        } else if (groupData.releaseresults && !allCompleted) {
+          console.log('WARNING: Database says results released but not all members have completed');
+          // Don't call onResultsReady - keep waiting
         }
         
         setLoading(false);

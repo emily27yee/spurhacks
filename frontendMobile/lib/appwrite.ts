@@ -506,14 +506,39 @@ export const appwriteDatabase = {
           }
         }
       } else {
-        // Count completed comments (only those with actual content)
+        // Count completed comments
         let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
         if (groupDoc.todaycomments) {
           try {
             todayComments = JSON.parse(groupDoc.todaycomments);
-            completedCount = Object.values(todayComments).filter(
-              c => c.comment && c.comment.trim().length > 0
-            ).length;
+            
+            console.log('Checking comment completion:');
+            console.log('- Group members:', groupMembers);
+            console.log('- Today comments:', todayComments);
+            
+            // Check if every member in the group has a valid comment
+            const allMembersCommented = groupMembers.every(member => {
+              const userId = member.userId || member; // Handle both object and string formats
+              const userCommentData = todayComments[userId];
+              const hasComment = userCommentData && userCommentData.comment && userCommentData.comment.trim().length > 0;
+              console.log(`- Member ${userId}: hasComment=${hasComment}, data=`, userCommentData);
+              return hasComment;
+            });
+
+            if (allMembersCommented) {
+              completedCount = totalMembers;
+            } else {
+              // Get a count of those who have actually commented
+              completedCount = groupMembers.filter(member => {
+                const userId = member.userId || member; // Handle both object and string formats
+                const userCommentData = todayComments[userId];
+                return userCommentData && userCommentData.comment && userCommentData.comment.trim().length > 0;
+              }).length;
+            }
+            
+            console.log(`- Completed count: ${completedCount}/${totalMembers}`);
+            console.log(`- All members commented: ${allMembersCommented}`);
+
           } catch (e) {
             console.error('Error parsing todaycomments:', e);
             return false;
@@ -763,18 +788,35 @@ export const appwriteDatabase = {
     try {
       const groupDoc = await appwriteDatabase.getGroupData(groupId);
       let todayDataObj: Record<string, string> = {};
+      let isFirstPhotoOfDay = false;
+      
       if (groupDoc.todaydata) {
         try {
           todayDataObj = JSON.parse(groupDoc.todaydata);
-        } catch {}
+          // Check if this is the first photo of the day
+          isFirstPhotoOfDay = Object.keys(todayDataObj).length === 0;
+        } catch {
+          isFirstPhotoOfDay = true;
+        }
+      } else {
+        isFirstPhotoOfDay = true;
       }
-      todayDataObj[userId] = photoId;
+      
+      // If this is the first photo of a new day, reset release results flag AND clear old comments/votes
+      const updateData: any = { todaydata: JSON.stringify({...todayDataObj, [userId]: photoId}) };
+      if (isFirstPhotoOfDay) {
+        updateData.releaseresults = false;
+        updateData.activityactive = false;
+        updateData.todaycomments = '{}';
+        updateData.todayvotes = '{}';
+        console.log('First photo of the day - resetting daily data');
+      }
 
       await databases.updateDocument(
         appwriteConfig.databaseId,
         appwriteConfig.groupDataCollectionId,
         groupId,
-        { todaydata: JSON.stringify(todayDataObj) }
+        updateData
       );
       return true;
     } catch (error) {
@@ -1160,6 +1202,29 @@ export const appwriteDatabase = {
       return true;
     } catch (error) {
       console.error('Error adding photo to game activity:', error);
+      throw error;
+    }
+  },
+
+  // Reset daily data for a group (call this when starting a new day/activity)
+  resetDailyData: async (groupId: string) => {
+    try {
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.groupDataCollectionId,
+        groupId,
+        {
+          todaydata: '{}',
+          todayvotes: '{}', 
+          todaycomments: '{}',
+          activityactive: false,
+          releaseresults: false
+        }
+      );
+      console.log(`Reset daily data for group ${groupId}`);
+      return true;
+    } catch (error) {
+      console.error('Error resetting daily data:', error);
       throw error;
     }
   },
