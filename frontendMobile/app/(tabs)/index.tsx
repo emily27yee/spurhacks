@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import Games from '@/components/Games';
+import NavigationButtons from '@/components/NavigationButtons';
 
 // Index page now simply redirects to the camera screen.
 export default function HomeRedirect() {
@@ -12,6 +13,9 @@ export default function HomeRedirect() {
   if (params.showGames === 'true' && params.groupId) {
     return (
       <SafeAreaView style={{ flex: 1 }}>
+        {/* Navigation Buttons */}
+        <NavigationButtons position="bottom" />
+        
         <Games
           selectedGroupId={params.groupId as string}
           onNavigateToCamera={() => router.push('/camera')}

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Image } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,8 +16,8 @@ export default function Index() {
   useEffect(() => {
     if (!isLoading) {
       if (isLoggedIn) {
-        // User is authenticated, redirect to main app
-        router.replace('/(tabs)');
+        // User is authenticated, redirect to splash screen first
+        router.replace('/splash');
       } else {
         // User is not authenticated, redirect to login
         router.replace('/login');
@@ -32,11 +32,27 @@ export default function Index() {
         flex: 1, 
         justifyContent: 'center', 
         alignItems: 'center',
-        backgroundColor: colors.background 
+        backgroundColor: '#F5EFE6' // Use the app's beige background
       }}>
-        <ThemedText style={{ fontSize: 48, marginBottom: 20 }}>📸</ThemedText>
-        <ActivityIndicator size="large" color={colors.tint} />
-        <ThemedText style={{ marginTop: 20, opacity: 0.7 }}>Loading Week Dump...</ThemedText>
+        <Image 
+          source={require('@/assets/images/dumpster-fire.gif')} 
+          style={{ 
+            width: 200, 
+            height: 200, 
+            marginBottom: 20 
+          }} 
+          resizeMode="contain"
+        />
+        <ActivityIndicator size="large" color="#E85D42" />
+        <ThemedText style={{ 
+          marginTop: 20, 
+          opacity: 0.8, 
+          fontSize: 18,
+          fontWeight: '600',
+          color: '#1C1C1C'
+        }}>
+          Loading Week Dump...
+        </ThemedText>
       </ThemedView>
     );
   }

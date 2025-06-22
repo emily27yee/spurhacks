@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useUserProfile } from '@/hooks/useUserProfile'
 import { useGroups } from '@/hooks/useGroups'
 import { appwriteDatabase } from '@/lib/appwrite'
+import NavigationButtons from '@/components/NavigationButtons'
 
 interface PastPhoto {
     photoId: string;
@@ -104,6 +105,9 @@ const Profile = () => {
 
   return (
     <View style={styles.container}>
+      {/* Navigation Buttons */}
+      <NavigationButtons position="bottom" />
+      
       <View style={styles.header}>
         <View style={styles.profileBanner}>
           <Text style={styles.profileName}>{userProfile.name}</Text>

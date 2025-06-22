@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Colors } from '@/constants/Colors';
+import NavigationButtons from '@/components/NavigationButtons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,8 +20,13 @@ export default function PhotoPromptScreen() {
     router.push({ pathname: '/camera', params: { mode: 'library' } as any });
   };
 
+
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+             {/* Navigation Buttons */}
+       <NavigationButtons position="bottom" />
+
       {/* Decorative scribble */}
       <View style={styles.topScribble} />
 
@@ -41,7 +47,7 @@ export default function PhotoPromptScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

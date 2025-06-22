@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Colors } from '@/constants/Colors'
 import { useGroups, type Group } from '@/hooks/useGroups';
 import { useAuth } from '@/contexts/AuthContext';
+import NavigationButtons from '@/components/NavigationButtons';
 
 const { width } = Dimensions.get('window');
 
@@ -171,6 +172,10 @@ const Groups = () => {
   return (
     <View style={{flex: 1, backgroundColor: Colors.cream}}>
         {isLoading && <ActivityIndicator style={StyleSheet.absoluteFill} size="large" color={Colors.orange} />}
+        
+        {/* Navigation Buttons */}
+        <NavigationButtons position="bottom" />
+        
         <ScrollView 
             ref={scrollRef}
             horizontal 

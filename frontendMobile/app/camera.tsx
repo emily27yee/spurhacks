@@ -20,6 +20,7 @@ import { appwriteDatabase } from '@/lib/appwrite';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useLocalSearchParams, router } from 'expo-router';
+import NavigationButtons from '@/components/NavigationButtons';
 
 // Daily prompts (hardcoded for now)
 const DAILY_PROMPTS = [
@@ -220,11 +221,14 @@ export default function CameraScreen() {
     }
   };
 
+
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: '#F5EFE6', // Beige background to match mock-up
     },
+
     topScribble: {
       position: 'absolute',
       top: 60,
@@ -578,7 +582,10 @@ export default function CameraScreen() {
 
     return (
     <>
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        {/* Navigation Buttons */}
+        <NavigationButtons position="bottom" />
+
         {/* Decorative scribble */}
         <View style={styles.topScribble} />
         
@@ -620,7 +627,7 @@ export default function CameraScreen() {
             </Text>
           )}
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* Group Selection Modal */}
       <Modal

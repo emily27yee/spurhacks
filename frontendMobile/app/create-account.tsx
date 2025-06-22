@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, View, Dimensions, Image } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, View, Dimensions, Image, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
+import NavigationButtons from '@/components/NavigationButtons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,7 +24,7 @@ export default function CreateAccountScreen() {
   // Check if user is already logged in
   useEffect(() => {
     if (isLoggedIn) {
-      router.replace('/(tabs)');
+      router.replace('/splash');
     }
   }, [isLoggedIn]);
 
@@ -73,22 +74,28 @@ export default function CreateAccountScreen() {
     
     try {
       await register(formData.email, formData.password, formData.name);
-      router.replace('/(tabs)/explore');
+      router.replace('/splash');
     } catch (error: any) {
       const errorMessage = error?.message || 'Account creation failed. Please try again.';
       Alert.alert('Registration Error', errorMessage);
     }
   };
 
+
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.innerContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+                 {/* Navigation Buttons */}
+         <NavigationButtons showGroupsButton={false} position="bottom" />
+
         <View style={styles.topBeigeBox} />
         <View style={styles.topScribble} />
 
@@ -165,7 +172,8 @@ export default function CreateAccountScreen() {
         <View style={styles.bottomScribble} />
 
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -174,10 +182,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  innerContainer: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
   },
+
   // --- DECORATIONS ---
   topBeigeBox: {
     position: 'absolute',

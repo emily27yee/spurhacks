@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, View, Dimensions, Image } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, View, Dimensions, Image, SafeAreaView } from 'react-native';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -22,7 +22,7 @@ export default function LoginScreen() {
   // Check if user is already logged in
   useEffect(() => {
     if (isLoggedIn) {
-      router.replace('/(tabs)');
+      router.replace('/splash');
     }
   }, [isLoggedIn]);
 
@@ -62,22 +62,32 @@ export default function LoginScreen() {
     
     try {
       await login(formData.email, formData.password);
-      router.replace('/(tabs)');
+      router.replace('/splash');
     } catch (error: any) {
       const errorMessage = error?.message || 'Login failed. Please try again.';
       Alert.alert('Login Error', errorMessage);
     }
   };
 
+
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView 
+        style={styles.innerContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Custom Back Button - Hidden for login since it's an entry point */}
+        {/* 
+        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+          <ThemedText style={styles.backButtonText}>←</ThemedText>
+        </TouchableOpacity>
+        */}
+
         <View style={styles.topBeigeBox} />
         <View style={styles.topScribble} />
 
@@ -137,7 +147,8 @@ export default function LoginScreen() {
         <View style={styles.bottomScribble} />
 
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -146,10 +157,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  innerContainer: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 150, // space for bottom decor
   },
+
   // --- DECORATIONS ---
   topBeigeBox: {
     position: 'absolute',

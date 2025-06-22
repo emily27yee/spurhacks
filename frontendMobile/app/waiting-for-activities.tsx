@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaView, View, TouchableOpacity, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { router } from 'expo-router';
 
 import WaitingForActivities from '@/components/WaitingForActivities';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGroups } from '@/hooks/useGroups';
 import { ThemedText } from '@/components/ThemedText';
+import NavigationButtons from '@/components/NavigationButtons';
 
 const ORANGE = '#E85D42';
 
@@ -40,11 +41,14 @@ export default function WaitingForActivitiesPage() {
     router.replace(`/(tabs)?showGames=true&groupId=${groupId}`);
   };
 
-  const handleBack = () => router.replace('/camera');
+
 
   if (!groupId) {
     return (
-      <SafeAreaView style={styles.loadingContainer}> 
+      <SafeAreaView style={styles.loadingContainer}>
+        {/* Navigation Buttons */}
+        <NavigationButtons position="bottom" />
+        
         <ActivityIndicator size="large" color={ORANGE} />
         <ThemedText style={styles.loadingText}>waiting for your photo upload...</ThemedText>
       </SafeAreaView>
@@ -53,6 +57,9 @@ export default function WaitingForActivitiesPage() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Navigation Buttons */}
+      <NavigationButtons position="bottom" />
+      
       <WaitingForActivities selectedGroupId={groupId} onActivityReady={handleActivityReady} />
     </SafeAreaView>
   );
@@ -75,4 +82,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textTransform: 'lowercase',
   },
+
 }); 
