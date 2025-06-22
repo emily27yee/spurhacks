@@ -2,6 +2,7 @@
   "name": "dumpsterfire",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -12,10 +13,12 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@google/generative-ai": "^0.24.1",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "appwrite": "^18.1.1",
+    "dotenv": "^16.5.0",
     "expo": "~53.0.12",
     "expo-asset": "~11.1.5",
     "expo-blur": "~14.1.5",
@@ -51,6 +54,7 @@
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "private": true

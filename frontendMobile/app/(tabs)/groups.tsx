@@ -5,6 +5,7 @@ import { useGroups, type Group } from '@/hooks/useGroups';
 import { useAuth } from '@/contexts/AuthContext';
 import NavigationButtons from '@/components/NavigationButtons';
 import { appwriteDatabase } from '@/lib/appwrite';
+import { useRouter } from 'expo-router'
 
 const { width } = Dimensions.get('window');
 
@@ -13,6 +14,7 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
     const [loadingPhoto, setLoadingPhoto] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         loadGroupPhoto();
@@ -97,11 +99,25 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
     }
 
     return (
-        <View style={styles.groupContainer}>            <View style={styles.topSection}>
+        <View style={styles.groupContainer}>            <View style={styles.topSection}>                {/* Sunday Dump Dumpster Icon */}                <TouchableOpacity 
+                    style={styles.sundayDumpIcon} 
+                    onPress={() => {
+                        router.push({
+                            pathname: '/sunday-dump',
+                            params: {
+                                groupId: group.$id,
+                                groupName: group.name
+                            }
+                        })
+                    }}
+                >
+                    <Text style={styles.sunIcon}>🗑️</Text>
+                </TouchableOpacity>
+                
                 {loadingPhoto ? (
                     <ActivityIndicator size="small" color="white" />
                 ) : currentPhoto ? (
-                    <>                        <View style={styles.photoNavigationContainer}>                            {groupPhotos.length > 1 && (
+                    <>                        <View style={styles.photoNavigationContainer}>{groupPhotos.length > 1 && (
                                 <TouchableOpacity 
                                     style={[styles.photoNavButton, { left: 10 }]} 
                                     onPress={goToPreviousPhoto}
@@ -156,8 +172,8 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                 <TouchableOpacity onPress={onPressRight}>
                     <Text style={styles.arrow}>▶</Text>
                 </TouchableOpacity>
-            ) : <View style={styles.arrowPlaceholder} />}
-        </View>
+            ) : <View style={styles.arrowPlaceholder} />}        </View>
+        
         <ScrollView style={styles.membersList}>
             {group.members.map((member, index) => (
                 <View key={index} style={styles.member}>
@@ -430,9 +446,27 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         paddingHorizontal: 20,
         borderRadius: 20,
-    },
-    membersList: {
+    },    membersList: {
         paddingHorizontal: 20,
+    },    sundayDumpIcon: {
+        position: 'absolute',
+        top: 30,
+        right: 15,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 25,
+        width: 50,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+        zIndex: 10,
+    },
+    sunIcon: {
+        fontSize: 28,
     },
     member: {
         flexDirection: 'row',
