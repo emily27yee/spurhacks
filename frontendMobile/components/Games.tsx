@@ -11,12 +11,15 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGroups } from '@/hooks/useGroups';
 import { appwriteDatabase } from '@/lib/appwrite';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import WaitingForActivities from './WaitingForActivities';
+import WaitingForResults from './WaitingForResults';
 
 interface GamesProps {
   selectedGroupId: string;
@@ -24,6 +27,9 @@ interface GamesProps {
 }
 
 type GameType = 'voting' | 'comment';
+
+const ORANGE = '#E85D42';
+const BEIGE = '#F5EFE6';
 
 export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProps) {
   const colorScheme = useColorScheme();
@@ -46,6 +52,8 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   const [activityActive, setActivityActive] = useState(false);
   const [resultsReleased, setResultsReleased] = useState(false);
   const [isNewDay, setIsNewDay] = useState(false);
+  const [showWaitingForActivities, setShowWaitingForActivities] = useState(false);
+  const [showWaitingForResults, setShowWaitingForResults] = useState(false);
   const commentInputRef = useRef<TextInput>(null);
 
   const selectedGroup = userGroups.find(g => g.$id === selectedGroupId);
@@ -53,6 +61,11 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   useEffect(() => {
     if (selectedGroupId && user) {
       loadGameData();
+      
+      // Also check if any groups are ready for result release
+      appwriteDatabase.checkAllGroupsForResultRelease().catch(error => {
+        console.log('Note: Could not check groups for result release:', error);
+      });
     }
   }, [selectedGroupId, user]);
 
@@ -78,19 +91,45 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       
       setIsNewDay(newDay);
       setActivityActive(!!groupData.activityactive);
-      setResultsReleased(!!groupData.releaseresults);
+
+      // Detect game type
+      const currentGameType = detectGameType();
+      setGameType(currentGameType);
+      
+      // Only consider results released if:
+      // 1. Activity is active
+      // 2. releaseresults is true 
+      // 3. There's actual comment/vote data for today
+      let shouldShowResults = false;
+      if (groupData.activityactive && groupData.releaseresults) {
+        if (currentGameType === 'comment' && groupData.todaycomments && groupData.todaycomments !== '{}') {
+          // For comments, check if all members have actually submitted comments
+          try {
+            const comments = JSON.parse(groupData.todaycomments);
+            const memberObjects = JSON.parse(groupData.members || '[]');
+            const allHaveComments = memberObjects.every((member: any) => {
+              const userId = member.userId || member;
+              return comments[userId]?.comment?.trim()?.length > 0;
+            });
+            shouldShowResults = allHaveComments;
+            console.log('Comment game results check:', { allHaveComments, shouldShowResults });
+          } catch (e) {
+            console.error('Error checking comment completion:', e);
+          }
+        } else if (currentGameType === 'voting' && groupData.todayvotes && groupData.todayvotes !== '{}') {
+          shouldShowResults = true;
+        }
+      }
+      setResultsReleased(shouldShowResults);
       
       console.log('Timing status:', {
         isNewDay: newDay,
         activityActive: !!groupData.activityactive,
         resultsReleased: !!groupData.releaseresults,
         hasEmptyVotes,
-        hasEmptyComments
+        hasEmptyComments,
+        shouldShowResults
       });
-      
-      // Detect game type
-      const currentGameType = detectGameType();
-      setGameType(currentGameType);
       
       // Load Photos
       let todayData: Record<string, string> = {};
@@ -187,6 +226,60 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                 setAssignedPhotoId('waiting-for-all');
               });
           }
+        }
+      }
+
+      // Check if we should show waiting screens
+      if (!newDay && !groupData.activityactive) {
+        // Photos submitted but activity not active yet
+        setShowWaitingForActivities(true);
+        setShowWaitingForResults(false);
+      } else {
+        setShowWaitingForActivities(false);
+        
+        // Check if user has completed activity but results not released
+        if (groupData.activityactive && !groupData.releaseresults) {
+          let userCompleted = false;
+          if (currentGameType === 'voting') {
+            let todayVotes: Record<string, string> = {};
+            if (groupData.todayvotes) {
+              try {
+                todayVotes = JSON.parse(groupData.todayvotes);
+                userCompleted = user ? !!todayVotes[user.$id] : false;
+              } catch (e) {
+                console.error('Error parsing todayvotes for waiting check:', e);
+              }
+            }
+          } else {
+            let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
+            if (groupData.todaycomments) {
+              try {
+                todayComments = JSON.parse(groupData.todaycomments);
+                userCompleted = user ? !!(todayComments[user.$id]?.comment?.trim()) : false;
+                
+                // Debug logging
+                console.log('Checking if should show waiting screen:');
+                console.log('- User completed:', userCompleted);
+                console.log('- Results released:', groupData.releaseresults);
+                console.log('- Activity active:', groupData.activityactive);
+                console.log('- User comment data:', user ? todayComments[user.$id] : 'no user');
+              } catch (e) {
+                console.error('Error parsing todaycomments for waiting check:', e);
+              }
+            }
+          }
+          
+          if (userCompleted) {
+            setShowWaitingForResults(true);
+          } else {
+            // Only set to false if we're not already showing waiting screen
+            // This prevents the screen from switching away when loadGameData is called while waiting
+            if (!showWaitingForResults) {
+              setShowWaitingForResults(false);
+            }
+          }
+        } else {
+          setShowWaitingForResults(false);
         }
       }
       
@@ -310,9 +403,12 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     try {
       setSubmitting(true);
       await appwriteDatabase.submitGroupVote(selectedGroupId, user.$id, selectedVote);
-      Alert.alert('Success', 'Your vote has been submitted!');
       setUserHasVoted(true);
       setVotes(prev => ({...prev, [user.$id]: selectedVote}));
+      // Show waiting screen until all members have voted
+      setShowWaitingForResults(true);
+      // Ensure results are not shown prematurely
+      setResultsReleased(false);
     } catch (error) {
       console.error('Error submitting vote:', error);
       Alert.alert('Error', 'Failed to submit vote. Please try again.');
@@ -327,9 +423,12 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     try {
       setSubmitting(true);
       await appwriteDatabase.submitGroupComment(selectedGroupId, user.$id, assignedPhotoId, commentText);
-      Alert.alert('Success', 'Your comment has been submitted!');
       setUserHasCommented(true);
       setComments(prev => ({...prev, [user.$id]: { assignedPhotoId, comment: commentText }}));
+      // Show waiting screen until all members have commented
+      setShowWaitingForResults(true);
+      // Ensure results are not shown prematurely
+      setResultsReleased(false);
     } catch (error) {
       console.error('Error submitting comment:', error);
       Alert.alert('Error', 'Failed to submit comment. Please try again.');
@@ -385,16 +484,16 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
         <TouchableOpacity
           style={[
             styles.button,
-            { backgroundColor: selectedVote ? colors.tint : colors.tabIconDefault }
+            !selectedVote && { opacity: 0.5 }
           ]}
           onPress={submitVote}
           disabled={!selectedVote || submitting}
         >
           {submitting ? (
-            <ActivityIndicator color={colors.background} />
+            <ActivityIndicator color="#1C1C1C" />
           ) : (
-            <Text style={[styles.buttonText, { color: colors.background }]}>
-              Submit Vote
+            <Text style={styles.buttonText}>
+              submit vote
             </Text>
           )}
         </TouchableOpacity>
@@ -407,28 +506,16 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     
     if (databaseFieldMissing) {
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            ⚠️ Database Setup Required
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 15 }]}>
-            The comment game requires a database field that hasn't been added yet.
-          </Text>
-          <View style={[styles.setupInstructions, { backgroundColor: colors.tint + '20', borderColor: colors.tint }]}>
-            <Text style={[styles.setupText, { color: colors.text }]}>
-              Please add this field to your Appwrite database:
+        <SafeAreaView style={styles.gameContainer}>
+          <View style={styles.topScribble} />
+          <ScrollView contentContainerStyle={styles.gameContentWrapper}>
+            <Text style={styles.gamePromptLabel}>ERROR</Text>
+            <Text style={styles.gamePromptText}>database setup required</Text>
+            <Text style={styles.gameDetailText}>
+              the comment game requires a database field that hasn't been added yet. please add 'todaycomments' field to your appwrite database and restart the app.
             </Text>
-            <Text style={[styles.setupCode, { color: colors.text }]}>
-              Collection: groupdata{'\n'}
-              Field Name: todaycomments{'\n'}
-              Type: String{'\n'}
-              Size: 5000 bytes
-            </Text>
-          </View>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault, marginTop: 15 }]}>
-            After adding the field, restart the app to continue.
-          </Text>
-        </View>
+          </ScrollView>
+        </SafeAreaView>
       );
     }
     
@@ -438,101 +525,79 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       const waitingFor = totalMembers - membersWithPhotos;
       
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            ⏳ Waiting for All Photos
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
-            {membersWithPhotos} out of {totalMembers} members have submitted photos.
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            We need {waitingFor} more photo{waitingFor !== 1 ? 's' : ''} before the comment game can begin.
-            Once everyone submits, you'll be assigned a photo to comment on!
-          </Text>
-          {membersWithPhotos >= 2 && (
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: colors.tabIconDefault, marginTop: 20 }]}
-              onPress={() => setUserHasCommented(true)}
-            >
-              <Text style={[styles.buttonText, { color: colors.background }]}>
-                View Current Comments
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <SafeAreaView style={styles.gameContainer}>
+          <View style={styles.topScribble} />
+          <ScrollView contentContainerStyle={styles.gameContentWrapper}>
+            <Text style={styles.gamePromptLabel}>STATUS</Text>
+            <Text style={styles.gamePromptText}>waiting for all photos</Text>
+            <Text style={styles.gameDetailText}>
+              {membersWithPhotos} out of {totalMembers} members have submitted photos. we need {waitingFor} more photo{waitingFor !== 1 ? 's' : ''} before the comment game can begin.
+            </Text>
+          </ScrollView>
+        </SafeAreaView>
       );
     }
     
     if (!assignedPhoto) {
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Loading Your Photo...
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            We're preparing your photo assignment. This should just take a moment!
-          </Text>
-        </View>
+        <SafeAreaView style={styles.gameContainer}>
+          <View style={styles.topScribble} />
+          <View style={styles.gameLoadingContainer}>
+            <ActivityIndicator size="large" color={ORANGE} />
+            <Text style={styles.gameLoadingText}>loading your photo...</Text>
+          </View>
+        </SafeAreaView>
       );
     }
 
     return (
-      <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Today's Comment Game! 💭
-          </Text>
-          <Text style={[styles.activityPrompt, { color: colors.text }]}>
-            What do you think is happening in this photo?
-          </Text>
-          
-          <View style={styles.assignedPhotoContainer}>
-            <Image source={{ uri: assignedPhoto.uri }} style={styles.assignedPhoto} />
-          </View>
+      <SafeAreaView style={styles.gameContainer}>
+        <View style={styles.topScribble} />
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.gameContentWrapper}>
+                      <Text style={styles.gamePromptLabel}>CAPTION</Text>
+          <Text style={styles.gamePromptText}>what do you think is happening?</Text>
+            
+            <View style={styles.gamePhotoContainer}>
+              <Image source={{ uri: assignedPhoto.uri }} style={styles.gamePhoto} />
+            </View>
 
-          <TextInput
-            ref={commentInputRef}
-            style={[styles.commentInput, { 
-              color: colors.text, 
-              borderColor: colors.border,
-              backgroundColor: colorScheme === 'dark' ? '#1c1c1c' : '#ffffff' 
-            }]}
-            placeholder="Write your comment here..."
-            placeholderTextColor={colors.tabIconDefault}
-            value={commentText}
-            onChangeText={(text) => {
-              console.log('Comment text changed:', text);
-              setCommentText(text);
-            }}
-            multiline={true}
-            numberOfLines={4}
-            maxLength={200}
-            textAlignVertical="top"
-            editable={true}
-            autoCapitalize="sentences"
-            autoCorrect={true}
-          />
-          
-          <Text style={[styles.characterCount, { color: colors.tabIconDefault }]}>
-            {commentText.length}/200
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: commentText.trim() ? colors.tint : colors.tabIconDefault }
-            ]}
-            onPress={submitComment}
-            disabled={!commentText.trim() || submitting}
-          >
-            {submitting ? (
-              <ActivityIndicator color={colors.background} />
-            ) : (
-              <Text style={[styles.buttonText, { color: colors.background }]}>
-                Submit Comment
+            <View style={styles.gameInputContainer}>
+              <TextInput
+                ref={commentInputRef}
+                style={styles.gameCommentInput}
+                placeholder="write your comment here..."
+                placeholderTextColor="rgba(28, 28, 28, 0.5)"
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline={true}
+                maxLength={200}
+              />
+              <Text style={styles.gameCharacterCount}>
+                {commentText.length}/200
               </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.gameButton,
+                !commentText.trim() && { opacity: 1 }
+              ]}
+              onPress={submitComment}
+              disabled={!commentText.trim() || submitting}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#1C1C1C" />
+              ) : (
+                <Text style={styles.gameButtonText}>submit caption →</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     );
   };
 
@@ -550,89 +615,121 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 
     const sortedPhotos = [...groupPhotos].sort((a, b) => voteCounts[b.id] - voteCounts[a.id]);
     const totalVotes = Object.keys(votes).length;
+    const winnerVotes = sortedPhotos.length > 0 ? voteCounts[sortedPhotos[0].id] : 0;
 
     return (
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          🏆 Voting Results!
-        </Text>
-        <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
-          {totalVotes} out of {selectedGroup?.memberCount || totalVotes} members have voted.
-        </Text>
+      <View style={styles.resultsContainer}>
+        {/* Orange scribble decoration */}
+        <View style={styles.topScribble} />
         
-        <View style={styles.scrollContainer}>
-          <ScrollView 
-            style={styles.photosGrid}
-            showsVerticalScrollIndicator={true}
-            fadingEdgeLength={30}
-          >
-            {sortedPhotos.map((photo, index) => (
-              <View key={photo.id} style={[styles.resultCard, { borderColor: colors.border }]}>
-                <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-                <View style={[styles.voteResultBanner, { backgroundColor: colors.tint }]}>
-                   <Text style={[styles.voteCountText, { color: colors.background }]}>
-                     {(index === 0 && voteCounts[photo.id] > 0) ? '👑 ' : ''}{voteCounts[photo.id]} Vote(s)
-                   </Text>
+        <View style={styles.resultsContent}>
+          {/* Header */}
+          <Text style={styles.resultsLabel}>RESULTS</Text>
+          <Text style={styles.resultsTitle}>voting complete!</Text>
+          
+          {/* Winner section */}
+          {sortedPhotos.length > 0 && winnerVotes > 0 && (
+            <View style={styles.winnerSection}>
+              <Text style={styles.winnerText}>winner</Text>
+              <View style={styles.winnerPhotoContainer}>
+                <Image source={{ uri: sortedPhotos[0].uri }} style={styles.winnerPhoto} />
+                <View style={styles.winnerBadge}>
+                  <Text style={styles.winnerBadgeText}>👑 {winnerVotes} votes</Text>
                 </View>
               </View>
-            ))}
-          </ScrollView>
-          {sortedPhotos.length > 1 && (
-            <View style={[styles.scrollIndicator, { backgroundColor: colors.background }]}>
-              <Text style={[styles.scrollIndicatorText, { color: colors.tabIconDefault }]}>
-                ↓ Scroll for more photos
-              </Text>
             </View>
           )}
+          
+          {/* All results */}
+          <View style={styles.allResultsSection}>
+            <Text style={styles.allResultsTitle}>all photos</Text>
+            <ScrollView 
+              style={styles.resultsScrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              {sortedPhotos.map((photo, index) => (
+                <View key={photo.id} style={styles.resultPhotoCard}>
+                  <Image source={{ uri: photo.uri }} style={styles.resultPhoto} />
+                  <View style={styles.resultVoteInfo}>
+                    <Text style={styles.resultVoteCount}>
+                      {index === 0 && voteCounts[photo.id] > 0 ? '👑 ' : ''}
+                      {voteCounts[photo.id]} {voteCounts[photo.id] === 1 ? 'vote' : 'votes'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+          
+          {/* Stats */}
+          <View style={styles.statsSection}>
+            <Text style={styles.statsText}>
+              {totalVotes} of {selectedGroup?.memberCount || totalVotes} members voted
+            </Text>
+          </View>
         </View>
       </View>
     );
   };
 
   const renderCommentResults = () => {
-    // Count only comments that are non-empty strings
-    const totalComments = Object.values(comments).filter(c => c.comment && c.comment.trim().length > 0).length;
+    // Count only captions that are non-empty strings
+    const totalCaptions = Object.values(comments).filter(c => c.comment && c.comment.trim().length > 0).length;
 
     return (
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          💭 Comment Game Results!
-        </Text>
-        <Text style={[styles.infoText, { color: colors.tabIconDefault, marginBottom: 20 }]}>
-          {totalComments} out of {selectedGroup?.memberCount || totalComments} members have commented.
-        </Text>
+      <View style={styles.resultsContainer}>
+        {/* Orange scribble decoration */}
+        <View style={styles.topScribble} />
         
-        <ScrollView style={styles.photosGrid} showsVerticalScrollIndicator={true}>
-          {groupPhotos.map((photo) => {
-            // Find all comments for this photo
-            const photoComments = Object.entries(comments).filter(
-              ([_, comment]) => comment.assignedPhotoId === photo.id && comment.comment && comment.comment.trim().length > 0
-            );
-            
-            return (
-              <View key={photo.id} style={[styles.commentResultCard, { borderColor: colors.border }]}>
-                <Image source={{ uri: photo.uri }} style={styles.photoImage} />
-                {photoComments.length > 0 ? (
-                  <View style={styles.commentsContainer}>
-                    {photoComments.map(([userId, comment], index) => (
-                      <View key={userId} style={[styles.commentBubble, { backgroundColor: colors.tint + '20' }]}>
-                        <Text style={[styles.commentText, { color: colors.text }]}>
-                          "{comment.comment}"
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <View style={styles.noCommentsContainer}>
-                    <Text style={[styles.noCommentsText, { color: colors.tabIconDefault }]}>
-                      No comments yet
-                    </Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.resultsContent}>
+          {/* Header */}
+          <Text style={styles.resultsLabel}>RESULTS</Text>
+          <Text style={styles.resultsTitle}>captions revealed!</Text>
+          
+          {/* Photos with captions */}
+          <ScrollView 
+            style={styles.resultsScrollView}
+            showsVerticalScrollIndicator={false}
+          >
+            {groupPhotos.map((photo) => {
+              // Find all captions for this photo
+              const photoCaptions = Object.entries(comments).filter(
+                ([_, comment]) => comment.assignedPhotoId === photo.id && comment.comment && comment.comment.trim().length > 0
+              );
+              
+              return (
+                <View key={photo.id} style={styles.commentResultContainer}>
+                  <Image source={{ uri: photo.uri }} style={styles.commentResultPhoto} />
+                  
+                  {photoCaptions.length > 0 ? (
+                    <View style={styles.commentsList}>
+                      {photoCaptions.map(([userId, comment], index) => (
+                        <View key={userId} style={styles.commentResultBubble}>
+                          <Text style={styles.commentResultText}>
+                            "{comment.comment}"
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <View style={styles.noCommentsResult}>
+                      <Text style={styles.noCommentsResultText}>
+                        no captions for this photo
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </ScrollView>
+          
+          {/* Stats */}
+          <View style={styles.statsSection}>
+            <Text style={styles.statsText}>
+              {totalCaptions} of {selectedGroup?.memberCount || totalCaptions} members captioned
+            </Text>
+          </View>
+        </View>
       </View>
     );
   };
@@ -688,12 +785,9 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
   const renderTodaysPhotoSection = () => {
     if (hasUserTakenPhoto()) {
       return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <View style={styles.submittedContainer}>
+          <Text style={styles.submittedText}>
             📸 Photo Submitted!
-          </Text>
-          <Text style={[styles.infoText, { color: colors.tabIconDefault }]}>
-            Your photo is in today's game!
           </Text>
         </View>
       );
@@ -709,11 +803,11 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
         </Text>
         
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: colors.tint }]}
+          style={styles.button}
           onPress={onNavigateToCamera}
         >
-          <Text style={[styles.buttonText, { color: colors.background }]}>
-            📷 Take Photo
+          <Text style={styles.buttonText}>
+            📷 take photo
           </Text>
         </TouchableOpacity>
       </View>
@@ -744,8 +838,38 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     );
   }
 
+  // Show waiting screens if needed
+  if (showWaitingForActivities) {
+    return (
+      <WaitingForActivities 
+        selectedGroupId={selectedGroupId}
+        onActivityReady={() => {
+          setShowWaitingForActivities(false);
+          loadGameData(); // Reload to get updated activity status
+        }}
+      />
+    );
+  }
+
+  if (!loading && activityActive && !resultsReleased) {
+    const userDone = (gameType === 'comment' && userHasCommented) || (gameType === 'voting' && userHasVoted);
+    if (userDone) {
+      return (
+        <WaitingForResults
+          selectedGroupId={selectedGroupId}
+          gameType={gameType}
+          onResultsReady={() => {
+            // Mark results as released locally and fetch fresh data once
+            setResultsReleased(true);
+            loadGameData();
+          }}
+        />
+      );
+    }
+  }
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={[styles.container, { backgroundColor: BEIGE }]}>
       {/* Check timing constraints first */}
       {isNewDay && !activityActive ? (
         // New day but activity not active yet
@@ -771,11 +895,11 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                 </Text>
                 
                 <TouchableOpacity
-                  style={[styles.button, { backgroundColor: colors.tint }]}
+                  style={styles.button}
                   onPress={onNavigateToCamera}
                 >
-                  <Text style={[styles.buttonText, { color: colors.background }]}>
-                    📷 Take Photo
+                  <Text style={styles.buttonText}>
+                    📷 take photo
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -785,14 +909,33 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
             <>
               {gameType === 'voting' ? (
                 userHasVoted ? (
-                  resultsReleased ? renderVoteResults() : renderResultsNotReleased()
+                  resultsReleased ? (
+                    renderVoteResults()
+                  ) : (
+                    <WaitingForResults 
+                      selectedGroupId={selectedGroupId}
+                      gameType={gameType}
+                      onResultsReady={() => {
+                        loadGameData();
+                      }}
+                    />
+                  )
                 ) : renderPhotoVoting()
               ) : (
                 userHasCommented ? (
-                  resultsReleased ? renderCommentResults() : renderResultsNotReleased()
+                  resultsReleased ? (
+                    renderCommentResults()
+                  ) : (
+                    <WaitingForResults 
+                      selectedGroupId={selectedGroupId}
+                      gameType={gameType}
+                      onResultsReady={() => {
+                        loadGameData();
+                      }}
+                    />
+                  )
                 ) : renderCommentGame()
               )}
-              {renderTodaysPhotoSection()}
             </>
           )}
         </>
@@ -804,6 +947,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: BEIGE,
   },
   section: {
     margin: 20,
@@ -830,14 +974,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   button: {
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#F7C52D', // Yellow background to match app design
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     alignItems: 'center',
     marginTop: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#E85D42', // Orange border
   },
   buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1C1C1C', // Dark text
+    textTransform: 'lowercase',
   },
   photosGrid: {
     maxHeight: 320,
@@ -982,5 +1140,284 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     lineHeight: 20,
+  },
+  gameContainer: {
+    flex: 1,
+    backgroundColor: BEIGE,
+  },
+  topScribble: {
+    position: 'absolute',
+    top: 60,
+    right: 30,
+    width: 120,
+    height: 40,
+    borderWidth: 5,
+    borderColor: ORANGE,
+    transform: [{ rotate: '15deg' }],
+  },
+  gameContentWrapper: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 120,
+    paddingBottom: 40,
+    justifyContent: 'center',
+  },
+  gamePromptLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: ORANGE,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  gamePromptText: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 32,
+    color: '#1C1C1C',
+    marginBottom: 24,
+    textTransform: 'lowercase',
+  },
+  gameDetailText: {
+    fontSize: 16,
+    color: '#1C1C1C',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  gameLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gameLoadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#1C1C1C',
+    textTransform: 'lowercase',
+  },
+  gamePhotoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  gamePhoto: {
+    width: '85%',
+    aspectRatio: 1.2,
+    borderRadius: 15,
+    resizeMode: 'cover',
+  },
+  gameInputContainer: {
+    marginBottom: 16,
+  },
+  gameCommentInput: {
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: 'rgba(28, 28, 28, 0.1)',
+    borderRadius: 16,
+    padding: 12,
+    paddingTop: 12,
+    fontSize: 16,
+    color: '#1C1C1C',
+    textAlignVertical: 'top',
+    minHeight: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gameButton: {
+    backgroundColor: ORANGE, // Yellow background to match app design
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    marginTop: 8,
+    borderWidth: 2,
+    borderColor: '#E85D42', // Orange border
+  },
+  gameButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF', // Dark text instead of white
+    textTransform: 'lowercase',
+  },
+  gameCharacterCount: {
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 6,
+    color: 'rgba(28, 28, 28, 0.6)',
+  },
+  submittedContainer: {
+    backgroundColor: '#1C1C1C',
+    padding: 20,
+    borderRadius: 15,
+    margin: 20,
+    alignItems: 'center',
+  },
+  submittedText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  // New Results Page Styles
+  resultsContainer: {
+    flex: 1,
+    backgroundColor: BEIGE,
+  },
+  resultsContent: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 80,
+    paddingBottom: 20,
+  },
+  resultsLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: ORANGE,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  resultsTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 32,
+    color: '#1C1C1C',
+    marginBottom: 32,
+    textTransform: 'lowercase',
+  },
+  winnerSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  winnerText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1C',
+    marginBottom: 16,
+    textTransform: 'lowercase',
+  },
+  winnerPhotoContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  winnerPhoto: {
+    width: 200,
+    height: 200,
+    borderRadius: 20,
+    resizeMode: 'cover',
+  },
+  winnerBadge: {
+    position: 'absolute',
+    bottom: -10,
+    backgroundColor: ORANGE,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  winnerBadgeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'lowercase',
+  },
+  allResultsSection: {
+    flex: 1,
+    marginBottom: 20,
+  },
+  allResultsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1C1C1C',
+    marginBottom: 16,
+    textTransform: 'lowercase',
+  },
+  resultsScrollView: {
+    flex: 1,
+  },
+  resultPhotoCard: {
+    marginBottom: 16,
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resultPhoto: {
+    width: '100%',
+    aspectRatio: 1,
+    resizeMode: 'cover',
+  },
+  resultVoteInfo: {
+    padding: 12,
+    backgroundColor: 'white',
+  },
+  resultVoteCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1C1C1C',
+    textAlign: 'center',
+    textTransform: 'lowercase',
+  },
+  commentResultContainer: {
+    marginBottom: 24,
+    borderRadius: 15,
+    overflow: 'hidden',
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  commentResultPhoto: {
+    width: '100%',
+    aspectRatio: 1,
+    resizeMode: 'cover',
+  },
+  commentsList: {
+    padding: 16,
+  },
+  commentResultBubble: {
+    backgroundColor: '#F8F8F8',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: ORANGE,
+  },
+  commentResultText: {
+    fontSize: 15,
+    color: '#1C1C1C',
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  noCommentsResult: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noCommentsResultText: {
+    fontSize: 14,
+    color: 'rgba(28, 28, 28, 0.6)',
+    fontStyle: 'italic',
+    textTransform: 'lowercase',
+  },
+  statsSection: {
+    alignItems: 'center',
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(28, 28, 28, 0.1)',
+  },
+  statsText: {
+    fontSize: 14,
+    color: 'rgba(28, 28, 28, 0.7)',
+    textTransform: 'lowercase',
   },
 }); 
