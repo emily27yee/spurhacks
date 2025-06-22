@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -16,9 +17,6 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#1C1C1C',
         headerShown: false,
         tabBarButton: HapticTab,
-<<<<<<< HEAD
-        tabBarBackground: TabBarBackground,
-=======
         tabBarStyle: {
           backgroundColor: BEIGE,
           borderTopWidth: 0,
@@ -28,18 +26,12 @@ export default function TabLayout() {
           paddingBottom: Platform.OS === 'ios' ? 20 : 10,
           paddingTop: 10,
         },
->>>>>>> origin/main
       }}>
       <Tabs.Screen
         name="camera"
         options={{
-<<<<<<< HEAD
           title: 'Game',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
-=======
-          // Dashboard is deprecated; index simply redirects to camera.
-          tabBarButton: () => null,
->>>>>>> origin/main
         }}
       />
       <Tabs.Screen
