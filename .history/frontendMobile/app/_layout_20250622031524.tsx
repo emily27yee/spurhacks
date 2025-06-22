@@ -9,8 +9,6 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import '@/lib/errorSuppression';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -32,26 +30,24 @@ export default function RootLayout() {
   }
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ 
-            headerShown: false,
-          }}>
-            <Stack.Screen name="login" />
-            <Stack.Screen name="create-account" />
-            <Stack.Screen name="splash" />
-            <Stack.Screen name="camera" />
-            <Stack.Screen name="photo-prompt" />
-            <Stack.Screen name="waiting-for-activities" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-          <StatusBar 
-            style="dark" 
-            translucent={Platform.OS === 'android'} 
-          />
-        </ThemeProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ 
+          headerShown: false,
+        }}>
+          <Stack.Screen name="login" />
+          <Stack.Screen name="create-account" />
+          <Stack.Screen name="splash" />
+          <Stack.Screen name="camera" />
+          <Stack.Screen name="photo-prompt" />
+          <Stack.Screen name="waiting-for-activities" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+        <StatusBar 
+          style="dark" 
+          translucent={Platform.OS === 'android'} 
+        />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
