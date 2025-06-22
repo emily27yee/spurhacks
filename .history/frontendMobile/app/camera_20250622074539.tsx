@@ -664,7 +664,7 @@ export default function CameraScreen() {
                     styles.groupText,
                     selectedGroups.includes(group.$id) && styles.selectedGroupText
                   ]}>
-                    <Text>{selectedGroups.includes(group.$id) ? '✓' : '○'}</Text> {group.name}
+                    {selectedGroups.includes(group.$id) ? '✓' : '○'} {group.name}
                   </Text>
                 </TouchableOpacity>
               ))}

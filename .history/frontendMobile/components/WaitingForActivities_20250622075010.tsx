@@ -30,6 +30,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
   const [totalMembers, setTotalMembers] = useState(0);
   const [submittedCount, setSubmittedCount] = useState(0);
   const photoUrlCacheRef = useRef<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: any;
@@ -87,7 +88,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         
         setGroupPhotos(photos);
 
-        // Check if activity is ready (all photos submitted)
+        // Check if activity is ready (all members have submitted photos)
         if (photoCount >= memberCount && memberCount > 0) {
           // All photos submitted, check if activity is active
           if (groupData.activityactive) {
@@ -112,7 +113,17 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         }
         
         setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
+        // Handle specific error cases
+        if (error?.code === 404 || error?.message?.includes('Document with the requested ID could not be found')) {
+          console.log('Group not found, may have been deleted:', selectedGroupId);
+          // Group doesn't exist - this could happen if the group was deleted
+          // We should stop polling and show an appropriate message
+          setLoading(false);
+          setError('This group no longer exists or has been deleted.');
+          return;
+        }
+        
         console.error('Error checking activity status:', error);
         setLoading(false);
       }
@@ -137,6 +148,22 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.tint} />
           <Text style={styles.loadingText}>Checking activity status...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error if group doesn't exist
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: '#E85D42', textAlign: 'center' }]}>
+            {error}
+          </Text>
+          <Text style={[styles.loadingText, { fontSize: 14, marginTop: 10, opacity: 0.7 }]}>
+            Please return to your groups and try again.
+          </Text>
         </View>
       </SafeAreaView>
     );

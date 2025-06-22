@@ -674,9 +674,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 
   const renderCommentResults = () => {
     // Count only captions that are non-empty strings
-    const totalCaptions = Object.values(comments).filter(c => c.comment && c.comment.trim().length > 0).length;
-    
-    return (
+    const totalCaptions = Object.values(comments).filter(c => c.comment && c.comment.trim().length > 0).length;    return (
       <View style={styles.resultsContainer}>
         <View style={styles.resultsContent}>
           {/* Header */}

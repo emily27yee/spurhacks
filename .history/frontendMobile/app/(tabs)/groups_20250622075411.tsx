@@ -102,14 +102,11 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
     }
 
     return (
-        <View style={styles.groupContainer}>
-            <View style={styles.topSection}>
+        <View style={styles.groupContainer}>            <View style={styles.topSection}>
                 {loadingPhoto ? (
                     <ActivityIndicator size="small" color="white" />
                 ) : currentPhoto ? (
-                    <>
-                        <View style={styles.photoNavigationContainer}>
-                            {groupPhotos.length > 1 && (
+                    <>                        <View style={styles.photoNavigationContainer}>                            {groupPhotos.length > 1 && (
                                 <TouchableOpacity 
                                     style={[styles.photoNavButton, { left: 10 }]} 
                                     onPress={goToPreviousPhoto}
@@ -154,33 +151,32 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                 ) : null}
             </View>
             <View style={styles.groupNameContainer}>
-                {showLeftArrow ? (
-                    <TouchableOpacity onPress={onPressLeft}>
-                        <Text style={styles.arrow}>◀</Text>
-                    </TouchableOpacity>
-                ) : <View style={styles.arrowPlaceholder} />}
-                <Text style={styles.groupName}>{group.name}</Text>
-                {showRightArrow ? (
-                    <TouchableOpacity onPress={onPressRight}>
-                        <Text style={styles.arrow}>▶</Text>
-                    </TouchableOpacity>
-                ) : <View style={styles.arrowPlaceholder} />}
-            </View>
-            <ScrollView style={styles.membersList}>
-                {group.members.map((member, index) => (
-                    <View key={index} style={styles.member}>
-                        <View style={styles.memberAvatar} />
-                        <View>
-                            <Text style={styles.memberName}>{member.name}</Text>
-                            <Text style={styles.memberUsername}>@{member.userId.substring(0,10)}</Text>
-                        </View>
-                    </View>
-                ))}
-                <TouchableOpacity style={styles.leaveButton} onPress={() => onLeave(group)}>
-                    <Text style={styles.leaveButtonText}>Leave group</Text>
+            {showLeftArrow ? (
+                <TouchableOpacity onPress={onPressLeft}>
+                    <Text style={styles.arrow}>◀</Text>
                 </TouchableOpacity>
-            </ScrollView>
+            ) : <View style={styles.arrowPlaceholder} />}
+            <Text style={styles.groupName}>{group.name}</Text>
+            {showRightArrow ? (
+                <TouchableOpacity onPress={onPressRight}>
+                    <Text style={styles.arrow}>▶</Text>
+                </TouchableOpacity>
+            ) : <View style={styles.arrowPlaceholder} />}
         </View>
+        <ScrollView style={styles.membersList}>
+            {group.members.map((member, index) => (
+                <View key={index} style={styles.member}>
+                    <View style={styles.memberAvatar} />
+                    <View>
+                        <Text style={styles.memberName}>{member.name}</Text>
+                        <Text style={styles.memberUsername}>@{member.userId.substring(0,10)}</Text>
+                    </View>
+                </View>
+            ))}            <TouchableOpacity style={styles.leaveButton} onPress={() => onLeave(group)}>
+                <Text style={styles.leaveButtonText}>Leave group</Text>
+            </TouchableOpacity>
+        </ScrollView>
+    </View>
     );
 };
 

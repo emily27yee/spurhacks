@@ -30,6 +30,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
   const [totalMembers, setTotalMembers] = useState(0);
   const [submittedCount, setSubmittedCount] = useState(0);
   const photoUrlCacheRef = useRef<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: any;
@@ -87,7 +88,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         
         setGroupPhotos(photos);
 
-        // Check if activity is ready (all photos submitted)
+        // Check if activity is ready (all members have submitted photos)
         if (photoCount >= memberCount && memberCount > 0) {
           // All photos submitted, check if activity is active
           if (groupData.activityactive) {
@@ -112,7 +113,17 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         }
         
         setLoading(false);
-      } catch (error) {
+      } catch (error: any) {
+        // Handle specific error cases
+        if (error?.code === 404 || error?.message?.includes('Document with the requested ID could not be found')) {
+          console.log('Group not found, may have been deleted:', selectedGroupId);
+          // Group doesn't exist - this could happen if the group was deleted
+          // We should stop polling and show an appropriate message
+          setLoading(false);
+          setError('This group no longer exists or has been deleted.');
+          return;
+        }
+        
         console.error('Error checking activity status:', error);
         setLoading(false);
       }
