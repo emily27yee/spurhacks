@@ -12,11 +12,11 @@ export default function PhotoPromptScreen() {
   const colors = Colors[colorScheme ?? 'light'];
 
   const handleTakePhoto = () => {
-    router.push('/(tabs)/camera');
+    router.push('/camera');
   };
 
   const handleChooseFromLibrary = () => {
-    router.push({ pathname: '/(tabs)/camera', params: { mode: 'library' } as any });
+    router.push({ pathname: '/camera', params: { mode: 'library' } as any });
   };
 
   return (

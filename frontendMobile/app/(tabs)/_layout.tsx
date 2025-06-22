@@ -30,14 +30,31 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          // Dashboard is deprecated; index simply redirects to camera.
-          tabBarButton: () => null,
+          title: 'Home',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            textTransform: 'lowercase',
+          },
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="groups"
         options={{
-          title: 'profile',
+          title: 'Groups',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.3.fill" color={color} />,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            textTransform: 'lowercase',
+          },
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
           tabBarLabelStyle: {
             fontSize: 12,
@@ -46,13 +63,7 @@ export default function TabLayout() {
           },
         }}
       />
-      {/* Camera screen is handled at root level to hide it from tab bar */}
-      <Tabs.Screen
-        name="camera"
-        options={{
-          tabBarButton: () => null,
-        }}
-      />
+
     </Tabs>
   );
 }

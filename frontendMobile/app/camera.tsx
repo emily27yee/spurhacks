@@ -263,6 +263,7 @@ export default function CameraScreen() {
     },
     buttonGroup: {
       gap: 20,
+      marginTop: 30,
     },
     button: {
       flexDirection: 'row',

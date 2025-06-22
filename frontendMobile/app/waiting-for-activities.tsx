@@ -40,7 +40,7 @@ export default function WaitingForActivitiesPage() {
     router.replace(`/(tabs)?showGames=true&groupId=${groupId}`);
   };
 
-  const handleBack = () => router.replace('/(tabs)/camera');
+  const handleBack = () => router.replace('/camera');
 
   if (!groupId) {
     return (
