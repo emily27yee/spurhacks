@@ -9,8 +9,9 @@ import { appwriteDatabase } from '@/lib/appwrite';
 const { width } = Dimensions.get('window');
 
 const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLeft, onPressRight }: { group: Group, onLeave: (group: Group) => void, showLeftArrow: boolean, showRightArrow: boolean, onPressLeft: () => void, onPressRight: () => void }) => {
-    const [groupPhoto, setGroupPhoto] = useState<string | null>(null);
-    const [photoComment, setPhotoComment] = useState<string | null>(null);
+    const [groupPhotos, setGroupPhotos] = useState<Array<{id: string, userId: string, uri: string}>>([]);
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
     const [loadingPhoto, setLoadingPhoto] = useState(true);
 
     useEffect(() => {
@@ -39,41 +40,107 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                     console.error('Error parsing todaycomments:', e); 
                 }
             }
+              // Load all photos
+            const photos = [];
+            const comments: Record<string, string> = {};
             
-            // Get the first available photo
-            const photoEntries = Object.entries(todayData);
-            if (photoEntries.length > 0) {
-                const [userId, photoId] = photoEntries[0]; // Get first photo
-                const photoUrl = await appwriteDatabase.getPhotoUrl(photoId);
-                setGroupPhoto(photoUrl);
-                
-                // Find comment for this photo
-                const commentForPhoto = Object.values(todayComments).find(
-                    comment => comment.assignedPhotoId === photoId && comment.comment?.trim()
-                );
-                
-                if (commentForPhoto) {
-                    setPhotoComment(commentForPhoto.comment);
-                } else {
-                    setPhotoComment(null);
+            for (const [userId, photoId] of Object.entries(todayData)) {
+                try {
+                    const photoUrl = await appwriteDatabase.getPhotoUrl(photoId);
+                    console.log(`Loaded photo for user ${userId}: ${photoUrl ? 'URL received' : 'No URL'}`);
+                    photos.push({ id: photoId, userId: userId, uri: photoUrl });
+                    
+                    // Find comment for this photo
+                    const commentForPhoto = Object.values(todayComments).find(
+                        comment => comment.assignedPhotoId === photoId && comment.comment?.trim()
+                    );
+                    
+                    if (commentForPhoto) {
+                        comments[photoId] = commentForPhoto.comment;
+                    }
+                } catch (photoError) {
+                    console.error(`Error loading photo ${photoId}:`, photoError);
                 }
             }
+            
+            console.log(`Total photos loaded: ${photos.length}`);
+            setGroupPhotos(photos);
+            setPhotoComments(comments);
+            setCurrentPhotoIndex(0); // Reset to first photo
         } catch (error) {
-            console.error('Error loading group photo:', error);
-        } finally {
+            console.error('Error loading group photo:', error);        } finally {
             setLoadingPhoto(false);
         }
     };
+
+    const goToPreviousPhoto = () => {
+        if (groupPhotos.length > 0) {
+            setCurrentPhotoIndex((prevIndex) => 
+                prevIndex === 0 ? groupPhotos.length - 1 : prevIndex - 1
+            );
+        }
+    };
+
+    const goToNextPhoto = () => {
+        if (groupPhotos.length > 0) {
+            setCurrentPhotoIndex((prevIndex) => 
+                prevIndex === groupPhotos.length - 1 ? 0 : prevIndex + 1
+            );
+        }
+    };    const currentPhoto = groupPhotos[currentPhotoIndex];
+    const currentComment = currentPhoto ? photoComments[currentPhoto.id] : null;
+    
+    // Debug logging
+    console.log(`Group ${group.name}: Photos=${groupPhotos.length}, Index=${currentPhotoIndex}, CurrentPhoto=${currentPhoto ? 'Yes' : 'No'}`);
+    if (currentPhoto) {
+        console.log(`Current photo URI: ${currentPhoto.uri ? 'Has URI' : 'No URI'}`);
+    }
 
     return (
         <View style={styles.groupContainer}>            <View style={styles.topSection}>
                 {loadingPhoto ? (
                     <ActivityIndicator size="small" color="white" />
-                ) : groupPhoto ? (
-                    <>
-                        <Image source={{ uri: groupPhoto }} style={styles.groupDisplayPhoto} />
-                        {photoComment && (
-                            <Text style={styles.photoCommentText}>"{photoComment}"</Text>
+                ) : currentPhoto ? (
+                    <>                        <View style={styles.photoNavigationContainer}>                            {groupPhotos.length > 1 && (
+                                <TouchableOpacity 
+                                    style={[styles.photoNavButton, { left: 10 }]} 
+                                    onPress={goToPreviousPhoto}
+                                >
+                                    <Text style={styles.photoNavArrow}>◀</Text>
+                                </TouchableOpacity>
+                            )}
+                            
+                            {currentPhoto.uri ? (
+                                <Image 
+                                    source={{ uri: currentPhoto.uri }} 
+                                    style={styles.groupDisplayPhoto}
+                                    onError={(error) => console.error('Image load error:', error)}
+                                    onLoad={() => console.log('Image loaded successfully')}
+                                />
+                            ) : (
+                                <View style={[styles.groupDisplayPhoto, { backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center' }]}>
+                                    <Text style={{ color: 'white', fontSize: 16 }}>No Image</Text>
+                                </View>
+                            )}
+                            
+                            {groupPhotos.length > 1 && (
+                                <TouchableOpacity 
+                                    style={[styles.photoNavButton, { right: 10 }]} 
+                                    onPress={goToNextPhoto}
+                                >
+                                    <Text style={styles.photoNavArrow}>▶</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        
+                        {currentComment && (
+                            <Text style={styles.photoCommentText}>"{currentComment}"</Text>
+                        )}
+                        
+                        {groupPhotos.length > 1 && (
+                            <Text style={styles.photoCountText}>
+                                {currentPhotoIndex + 1} of {groupPhotos.length}
+                            </Text>
                         )}
                     </>
                 ) : null}
@@ -297,8 +364,8 @@ const styles = StyleSheet.create({
         height: '70%',
         borderRadius: 20,
         resizeMode: 'cover',
-    },
-    photoCommentText: {
+        backgroundColor: 'rgba(255,255,255,0.1)', // Add background to see if container is there
+    },photoCommentText: {
         color: 'white',
         fontSize: 14,
         fontStyle: 'italic',
@@ -306,6 +373,36 @@ const styles = StyleSheet.create({
         marginTop: 8,
         paddingHorizontal: 10,
         maxWidth: '80%',
+    },    photoNavigationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        position: 'relative',
+        flex: 1,
+    },photoNavButton: {
+        position: 'absolute',
+        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        borderRadius: 20,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1,
+        top: '50%',
+        marginTop: -20,
+    },
+    photoNavArrow: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    photoCountText: {
+        color: 'white',
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: 4,
+        opacity: 0.8,
     },
     caption: {
         color: 'white',
