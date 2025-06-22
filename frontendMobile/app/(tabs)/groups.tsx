@@ -4,16 +4,81 @@ import { Colors } from '@/constants/Colors'
 import { useGroups, type Group } from '@/hooks/useGroups';
 import { useAuth } from '@/contexts/AuthContext';
 import NavigationButtons from '@/components/NavigationButtons';
+import { appwriteDatabase } from '@/lib/appwrite';
 
 const { width } = Dimensions.get('window');
 
-const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLeft, onPressRight }: { group: Group, onLeave: (group: Group) => void, showLeftArrow: boolean, showRightArrow: boolean, onPressLeft: () => void, onPressRight: () => void }) => (
-    <View style={styles.groupContainer}>
-        <View style={styles.topSection}>
-            <Image source={require('@/assets/images/react-logo.png')} style={styles.groupImage} />
-            <Text style={styles.caption}>[caption if applicable]</Text>
-        </View>
-        <View style={styles.groupNameContainer}>
+const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLeft, onPressRight }: { group: Group, onLeave: (group: Group) => void, showLeftArrow: boolean, showRightArrow: boolean, onPressLeft: () => void, onPressRight: () => void }) => {
+    const [groupPhoto, setGroupPhoto] = useState<string | null>(null);
+    const [photoComment, setPhotoComment] = useState<string | null>(null);
+    const [loadingPhoto, setLoadingPhoto] = useState(true);
+
+    useEffect(() => {
+        loadGroupPhoto();
+    }, [group.$id]);    const loadGroupPhoto = async () => {
+        try {
+            setLoadingPhoto(true);
+            const groupData = await appwriteDatabase.getGroupData(group.$id);
+            
+            // Load Photos from todaydata
+            let todayData: Record<string, string> = {};
+            if (groupData.todaydata) {
+                try {
+                    todayData = JSON.parse(groupData.todaydata);
+                } catch (e) { 
+                    console.error('Error parsing todaydata:', e); 
+                }
+            }
+            
+            // Load Comments from todaycomments
+            let todayComments: Record<string, { assignedPhotoId: string, comment: string }> = {};
+            if (groupData.todaycomments) {
+                try {
+                    todayComments = JSON.parse(groupData.todaycomments);
+                } catch (e) { 
+                    console.error('Error parsing todaycomments:', e); 
+                }
+            }
+            
+            // Get the first available photo
+            const photoEntries = Object.entries(todayData);
+            if (photoEntries.length > 0) {
+                const [userId, photoId] = photoEntries[0]; // Get first photo
+                const photoUrl = await appwriteDatabase.getPhotoUrl(photoId);
+                setGroupPhoto(photoUrl);
+                
+                // Find comment for this photo
+                const commentForPhoto = Object.values(todayComments).find(
+                    comment => comment.assignedPhotoId === photoId && comment.comment?.trim()
+                );
+                
+                if (commentForPhoto) {
+                    setPhotoComment(commentForPhoto.comment);
+                } else {
+                    setPhotoComment(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading group photo:', error);
+        } finally {
+            setLoadingPhoto(false);
+        }
+    };
+
+    return (
+        <View style={styles.groupContainer}>            <View style={styles.topSection}>
+                {loadingPhoto ? (
+                    <ActivityIndicator size="small" color="white" />
+                ) : groupPhoto ? (
+                    <>
+                        <Image source={{ uri: groupPhoto }} style={styles.groupDisplayPhoto} />
+                        {photoComment && (
+                            <Text style={styles.photoCommentText}>"{photoComment}"</Text>
+                        )}
+                    </>
+                ) : null}
+            </View>
+            <View style={styles.groupNameContainer}>
             {showLeftArrow ? (
                 <TouchableOpacity onPress={onPressLeft}>
                     <Text style={styles.arrow}>◀</Text>
@@ -35,13 +100,13 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                         <Text style={styles.memberUsername}>@{member.userId.substring(0,10)}</Text>
                     </View>
                 </View>
-            ))}
-            <TouchableOpacity style={styles.leaveButton} onPress={() => onLeave(group)}>
+            ))}            <TouchableOpacity style={styles.leaveButton} onPress={() => onLeave(group)}>
                 <Text style={styles.leaveButtonText}>Leave group</Text>
             </TouchableOpacity>
         </ScrollView>
     </View>
-);
+    );
+};
 
 const CreateDiscover = ({ onCreate, onJoin, discoverableGroups, showLeftArrow, onPressLeft }: { onCreate: (name: string) => void, onJoin: (group: Group) => void, discoverableGroups: Group[], showLeftArrow: boolean, onPressLeft: () => void }) => {
     const [newGroupName, setNewGroupName] = useState('');
@@ -222,12 +287,25 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 50,
         borderBottomRightRadius: 50,
         padding: 20,
-    },
-    groupImage: {
+    },    groupImage: {
         width: '100%',
         height: 200,
         borderRadius: 20,
         marginBottom: 10,
+    },    groupDisplayPhoto: {
+        width: '70%',
+        height: '70%',
+        borderRadius: 20,
+        resizeMode: 'cover',
+    },
+    photoCommentText: {
+        color: 'white',
+        fontSize: 14,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        marginTop: 8,
+        paddingHorizontal: 10,
+        maxWidth: '80%',
     },
     caption: {
         color: 'white',
