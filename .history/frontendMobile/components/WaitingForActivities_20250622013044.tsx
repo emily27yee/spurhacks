@@ -87,7 +87,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
         
         setGroupPhotos(photos);
 
-        // Check if activity is ready (all photos submitted)
+        // Check if activity is ready (all members have submitted photos)
         if (photoCount >= memberCount && memberCount > 0) {
           // All photos submitted, check if activity is active
           if (groupData.activityactive) {

@@ -30,6 +30,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
   const [totalMembers, setTotalMembers] = useState(0);
   const [submittedCount, setSubmittedCount] = useState(0);
   const photoUrlCacheRef = useRef<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let interval: any;
