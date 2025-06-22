@@ -99,8 +99,7 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
     }
 
     return (
-        <View style={styles.groupContainer}>            <View style={styles.topSection}>
-                {/* Sunday Dump Sun Icon */}                <TouchableOpacity 
+        <View style={styles.groupContainer}>            <View style={styles.topSection}>                {/* Sunday Dump Dumpster Icon */}                <TouchableOpacity 
                     style={styles.sundayDumpIcon} 
                     onPress={() => {
                         router.push({
@@ -112,7 +111,7 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                         })
                     }}
                 >
-                    <Text style={styles.sunIcon}>☀️</Text>
+                    <Text style={styles.sunIcon}>🗑️</Text>
                 </TouchableOpacity>
                 
                 {loadingPhoto ? (
@@ -449,10 +448,9 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },    membersList: {
         paddingHorizontal: 20,
-    },
-    sundayDumpIcon: {
+    },    sundayDumpIcon: {
         position: 'absolute',
-        top: 15,
+        top: 30,
         right: 15,
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
         borderRadius: 25,
