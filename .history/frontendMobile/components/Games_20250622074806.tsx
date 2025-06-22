@@ -507,7 +507,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     if (databaseFieldMissing) {
       return (
         <SafeAreaView style={styles.gameContainer}>
-          <View style={styles.topScribble} />
+          {/* <View style={styles.topScribble} /> */}
           <ScrollView contentContainerStyle={styles.gameContentWrapper}>
             <Text style={styles.gamePromptLabel}>ERROR</Text>
             <Text style={styles.gamePromptText}>database setup required</Text>

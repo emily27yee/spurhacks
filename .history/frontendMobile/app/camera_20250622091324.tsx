@@ -587,7 +587,7 @@ export default function CameraScreen() {
         <NavigationButtons position="bottom" />
 
         {/* Decorative scribble */}
-        {/* <View style={styles.topScribble} /> */}
+        <View style={styles.topScribble} />
         
         {/* Top right image */}
         <Image 
@@ -664,7 +664,7 @@ export default function CameraScreen() {
                     styles.groupText,
                     selectedGroups.includes(group.$id) && styles.selectedGroupText
                   ]}>
-                    {selectedGroups.includes(group.$id) ? '✓' : '○'} {group.name}
+                    <Text>{selectedGroups.includes(group.$id) ? '✓' : '○'}</Text> {group.name}
                   </Text>
                 </TouchableOpacity>
               ))}

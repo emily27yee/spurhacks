@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Image} from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
 interface NavigationButtonsProps {
@@ -68,6 +68,9 @@ const NavigationButtons = ({
       )}
     </View>
   );
+
+
+
 }
 
 export default React.memo(NavigationButtons);
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 60,
     left: 20,
     right: 20,
     flexDirection: 'row',
@@ -109,10 +112,5 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 24,
-  },
-  iconImage: {
-    width: 28,
-    height: 28,
-    tintColor: '#1C1C1C', // This will make the icons black
   },
 });

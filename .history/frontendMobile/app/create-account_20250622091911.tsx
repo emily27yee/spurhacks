@@ -7,14 +7,16 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/contexts/AuthContext';
+import NavigationButtons from '@/components/NavigationButtons';
 
 const { width, height } = Dimensions.get('window');
 
-export default function LoginScreen() {
+export default function CreateAccountScreen() {
   const colorScheme = useColorScheme();
-  const { login, isLoading, isLoggedIn } = useAuth();
+  const { register, isLoading, isLoggedIn } = useAuth();
 
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
   });
@@ -34,6 +36,16 @@ export default function LoginScreen() {
   };
 
   const validateForm = () => {
+    if (!formData.name.trim()) {
+      Alert.alert('Error', 'Please enter your name');
+      return false;
+    }
+    
+    if (formData.name.trim().length < 2) {
+      Alert.alert('Error', 'Name must be at least 2 characters long');
+      return false;
+    }
+    
     if (!formData.email.trim()) {
       Alert.alert('Error', 'Please enter your email address');
       return false;
@@ -45,7 +57,7 @@ export default function LoginScreen() {
     }
     
     if (!formData.password.trim()) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert('Error', 'Please enter a password');
       return false;
     }
     
@@ -57,15 +69,15 @@ export default function LoginScreen() {
     return true;
   };
 
-  const handleLogin = async () => {
+  const handleCreateAccount = async () => {
     if (!validateForm()) return;
     
     try {
-      await login(formData.email, formData.password);
+      await register(formData.email, formData.password, formData.name);
       router.replace('/splash');
     } catch (error: any) {
-      const errorMessage = error?.message || 'Login failed. Please try again.';
-      Alert.alert('Login Error', errorMessage);
+      const errorMessage = error?.message || 'Account creation failed. Please try again.';
+      Alert.alert('Registration Error', errorMessage);
     }
   };
 
@@ -81,27 +93,34 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Custom Back Button - Hidden for login since it's an entry point */}
-        {/* 
-        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <ThemedText style={styles.backButtonText}>←</ThemedText>
-        </TouchableOpacity>
-        */}
+                 {/* Navigation Buttons */}
+         <NavigationButtons showGroupsButton={false} position="bottom" />
 
-        {/* <View style={styles.topBeigeBox} /> */}
+        <View style={styles.topBeigeBox} />
         {/* <View style={styles.topScribble} /> */}
 
         {/* Illustration */}
         <View style={styles.illustrationContainer}>
-            <Image source={require('@/assets/images/dumpster-fire.png')} style={styles.dumpsterGif} resizeMode="contain" />
+          <Image source={require('@/assets/images/dumpster-fire.png')} style={styles.dumpsterGif} resizeMode="contain" />
         </View>
 
         <View style={styles.welcomeContainer}>
-          <ThemedText style={styles.welcomeText}>welcome back</ThemedText>
+          <ThemedText style={styles.welcomeText}>join the dump</ThemedText>
         </View>
 
         {/* Form Section */}
         <View style={styles.formSection}>
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.inputLabel}>name</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              value={formData.name}
+              onChangeText={(value) => handleInputChange('name', value)}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+
           <View style={styles.inputGroup}>
             <ThemedText style={styles.inputLabel}>email</ThemedText>
             <TextInput
@@ -127,24 +146,30 @@ export default function LoginScreen() {
           </View>
 
           <TouchableOpacity 
-            style={styles.signInButton}
-            onPress={handleLogin}
+            style={styles.createButton}
+            onPress={handleCreateAccount}
             disabled={isLoading}
           >
-            <ThemedText style={styles.signInButtonText}>
-              {isLoading ? 'signing in...' : 'sign in'}
+            <ThemedText style={styles.createButtonText}>
+              {isLoading ? 'creating account...' : 'create account'}
             </ThemedText>
           </TouchableOpacity>
+
+          <View style={styles.termsContainer}>
+            <ThemedText style={styles.termsText}>
+              by creating an account, you agree to our terms
+            </ThemedText>
+          </View>
         </View>
 
-        <View style={styles.signUpContainer}>
-          <ThemedText style={styles.signUpText}>Don't have an account? </ThemedText>
-          <TouchableOpacity onPress={() => router.push('/create-account')}>
-            <ThemedText style={styles.signUpLink}>Create one</ThemedText>
+        <View style={styles.signInContainer}>
+          <ThemedText style={styles.signInText}>Already have an account? </ThemedText>
+          <TouchableOpacity onPress={() => router.push('/login')}>
+            <ThemedText style={styles.signInLink}>Sign in</ThemedText>
           </TouchableOpacity>
         </View>
         
-        {/* <View style={styles.bottomScribble} /> */}
+        <View style={styles.bottomScribble} />
 
       </ScrollView>
       </KeyboardAvoidingView>
@@ -162,7 +187,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 150, // space for bottom decor
+    justifyContent: 'center',
   },
 
   // --- DECORATIONS ---
@@ -202,8 +227,8 @@ const styles = StyleSheet.create({
   // --- ILLUSTRATION ---
   illustrationContainer: {
     alignItems: 'center',
-    marginTop: height * 0.16,
-    marginBottom: -40, // pull image down to overlap
+    marginTop: height * 0.06,
+    marginBottom: -15,
   },
   dumpsterGif: {
     width: 190,
@@ -212,56 +237,66 @@ const styles = StyleSheet.create({
   // --- TEXT & FORM ---
   welcomeContainer: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: 8,
   },
   welcomeText: {
     fontSize: 28,
+    height: 30,
     fontWeight: 'bold',
     color: '#1C1C1C',
   },
   formSection: {
     paddingHorizontal: 40,
-    marginTop: 20,
+    marginTop: 8,
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 16,
     color: '#3C3C3C',
-    marginBottom: 8,
+    marginBottom: 5,
     fontWeight: '500',
   },
   textInput: {
     backgroundColor: '#F5EFE6',
     borderRadius: 16,
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 15,
     fontSize: 16,
     color: '#1C1C1C',
   },
-  signInButton: {
+  createButton: {
     backgroundColor: '#F7C52D',
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 12,
   },
-  signInButtonText: {
+  createButtonText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1C1C1C',
   },
-  signUpContainer: {
+  termsContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  termsText: {
+    fontSize: 12,
+    color: '#A0A0A0',
+    textAlign: 'center',
+  },
+  signInContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 10,
   },
-  signUpText: {
+  signInText: {
     color: '#A0A0A0',
   },
-  signUpLink: {
+  signInLink: {
     color: '#E85D42',
     fontWeight: 'bold',
     marginLeft: 5,

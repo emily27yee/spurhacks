@@ -507,7 +507,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     if (databaseFieldMissing) {
       return (
         <SafeAreaView style={styles.gameContainer}>
-          <View style={styles.topScribble} />
+          {/* <View style={styles.topScribble} /> */}
           <ScrollView contentContainerStyle={styles.gameContentWrapper}>
             <Text style={styles.gamePromptLabel}>ERROR</Text>
             <Text style={styles.gamePromptText}>database setup required</Text>
@@ -526,7 +526,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       
       return (
         <SafeAreaView style={styles.gameContainer}>
-          <View style={styles.topScribble} />
+          {/* <View style={styles.topScribble} /> */}
           <ScrollView contentContainerStyle={styles.gameContentWrapper}>
             <Text style={styles.gamePromptLabel}>STATUS</Text>
             <Text style={styles.gamePromptText}>waiting for all photos</Text>
@@ -541,7 +541,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     if (!assignedPhoto) {
       return (
         <SafeAreaView style={styles.gameContainer}>
-          <View style={styles.topScribble} />
+          {/* <View style={styles.topScribble} /> */}
           <View style={styles.gameLoadingContainer}>
             <ActivityIndicator size="large" color={ORANGE} />
             <Text style={styles.gameLoadingText}>loading your photo...</Text>
@@ -552,7 +552,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 
     return (
       <SafeAreaView style={styles.gameContainer}>
-        <View style={styles.topScribble} />
+        {/* <View style={styles.topScribble} /> */}
         <KeyboardAvoidingView 
           style={{ flex: 1 }} 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

@@ -620,7 +620,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     return (
       <View style={styles.resultsContainer}>
         {/* Orange scribble decoration */}
-        {/* <View style={styles.topScribble} /> */}
+        <View style={styles.topScribble} />
         
         <View style={styles.resultsContent}>
           {/* Header */}
@@ -652,8 +652,8 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                   <Image source={{ uri: photo.uri }} style={styles.resultPhoto} />
                   <View style={styles.resultVoteInfo}>
                     <Text style={styles.resultVoteCount}>
-                      {index === 0 && voteCounts[photo.id] > 0 ? '👑 ' : ''}
-                      {voteCounts[photo.id]} {voteCounts[photo.id] === 1 ? 'vote' : 'votes'}
+                      {index === 0 && voteCounts[photo.id] > 0 ? <Text>👑 </Text> : null}
+                      {voteCounts[photo.id]} <Text>{voteCounts[photo.id] === 1 ? 'vote' : 'votes'}</Text>
                     </Text>
                   </View>
                 </View>
@@ -674,7 +674,9 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
 
   const renderCommentResults = () => {
     // Count only captions that are non-empty strings
-    const totalCaptions = Object.values(comments).filter(c => c.comment && c.comment.trim().length > 0).length;    return (
+    const totalCaptions = Object.values(comments).filter(c => c.comment && c.comment.trim().length > 0).length;
+    
+    return (
       <View style={styles.resultsContainer}>
         <View style={styles.resultsContent}>
           {/* Header */}
@@ -701,7 +703,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                       {photoCaptions.map(([userId, comment], index) => (
                         <View key={userId} style={styles.commentResultBubble}>
                           <Text style={styles.commentResultText}>
-                            "{comment.comment}"
+                            <Text>"</Text>{comment.comment}<Text>"</Text>
                           </Text>
                         </View>
                       ))}

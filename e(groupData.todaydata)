@@ -1,0 +1,35 @@
+[33me606d25[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: checkout: moving from f8fd67b4c298de04474d02670a84ebdce6a1c624 to main
+[33mf8fd67b[m HEAD@{1}: commit: Attempted to fix text error again, fixed polling issue
+[33me606d25[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{2}: checkout: moving from main to origin
+[33me606d25[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{3}: pull --tags origin main: Fast-forward
+[33ma13389f[m HEAD@{4}: commit: Downloaded media libraries and view shot part 2
+[33m4196571[m HEAD@{5}: commit: Downloaded Media Libraries and view shot
+[33mde13ff5[m HEAD@{6}: pull: Fast-forward
+[33m97a300b[m HEAD@{7}: checkout: moving from textbugfix to main
+[33ma164306[m[33m ([m[1;32mtextbugfix[m[33m)[m HEAD@{8}: commit: chore: fixed Text loading error, again
+[33m97a300b[m HEAD@{9}: checkout: moving from main to textbugfix
+[33m97a300b[m HEAD@{10}: commit: chore: fixed logout error
+[33m555e354[m HEAD@{11}: pull --tags origin main: Fast-forward
+[33m250fe77[m HEAD@{12}: pull: Fast-forward
+[33m8552741[m HEAD@{13}: commit: chore: fixed React error
+[33m865c90d[m HEAD@{14}: pull: Fast-forward
+[33m9f0a353[m HEAD@{15}: checkout: moving from Sharisse_prev to main
+[33mb0c2f7e[m[33m ([m[1;31morigin/Sharisse_prev[m[33m, [m[1;32mSharisse_prev[m[33m)[m HEAD@{16}: checkout: moving from Sharisse to Sharisse_prev
+[33m736c0e1[m[33m ([m[1;31morigin/Sharisse[m[33m, [m[1;32mSharisse[m[33m)[m HEAD@{17}: commit: Saved the bugged version
+[33mcb279b1[m HEAD@{18}: checkout: moving from Sharisse to Sharisse
+[33mcb279b1[m HEAD@{19}: pull --tags origin Sharisse: Fast-forward
+[33mdc95a2b[m HEAD@{20}: pull --tags origin Sharisse: Fast-forward
+[33mb0c2f7e[m[33m ([m[1;31morigin/Sharisse_prev[m[33m, [m[1;32mSharisse_prev[m[33m)[m HEAD@{21}: commit: chore: updated all page functionality and deleted old default pages
+[33m84a17da[m HEAD@{22}: commit: feat: completed groups page, new profile page, and new ui. Old home and Profile still exist
+[33m2dbb4e5[m HEAD@{23}: commit: feat: added groups page and bugged profile page
+[33me29f58b[m HEAD@{24}: reset: moving to HEAD
+[33me29f58b[m HEAD@{25}: pull origin main: Fast-forward
+[33md72cf78[m HEAD@{26}: checkout: moving from Sharisse to Sharisse
+[33md72cf78[m HEAD@{27}: pull origin main: Fast-forward
+[33mb61c04c[m HEAD@{28}: pull origin main: Fast-forward
+[33m9f0a353[m HEAD@{29}: pull origin main: Fast-forward
+[33ma4bb441[m HEAD@{30}: checkout: moving from main to Sharisse
+[33m9f0a353[m HEAD@{31}: pull --tags origin main: Fast-forward
+[33ma4bb441[m HEAD@{32}: checkout: moving from Sharisse to main
+[33ma4bb441[m HEAD@{33}: checkout: moving from main to Sharisse
+[33ma4bb441[m HEAD@{34}: clone: from https://github.com/emily27yee/spurhacks.git

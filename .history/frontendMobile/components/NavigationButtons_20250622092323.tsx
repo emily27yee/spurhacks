@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Image} from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
 interface NavigationButtonsProps {
@@ -36,37 +36,7 @@ const NavigationButtons = ({
   const containerStyle = position === 'top' ? styles.topContainer : styles.bottomContainer;
 
   return (
-    <View style={[containerStyle, style]}>
-      {showGroupsButton && (
-        <TouchableOpacity style={styles.navButton} onPress={handleGroupsPress}>
-          <Image 
-            source={require('@/assets/images/groups-icon.png')} 
-            style={styles.iconImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      )}
-
-      {showCameraButton && (
-        <TouchableOpacity style={styles.navButton} onPress={handleCameraPress}>
-          <Image 
-            source={require('@/assets/images/house-icon.png')} 
-            style={styles.iconImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      )}
-
-      {showProfileButton && (
-        <TouchableOpacity style={styles.navButton} onPress={handleProfilePress}>
-          <Image 
-            source={require('@/assets/images/profile-icon.png')} 
-            style={styles.iconImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      )}
-    </View>
+    
   );
 }
 
@@ -84,7 +54,7 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 60,
     left: 20,
     right: 20,
     flexDirection: 'row',
@@ -109,10 +79,5 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: 24,
-  },
-  iconImage: {
-    width: 28,
-    height: 28,
-    tintColor: '#1C1C1C', // This will make the icons black
   },
 });
