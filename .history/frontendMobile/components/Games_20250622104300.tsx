@@ -290,23 +290,39 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
     }
   };
 
+  // Generate a derangement - a permutation where no element is in its original position
   const generateDerangement = (arr: string[]): string[] => {
     const n = arr.length;
     if (n <= 1) return [];
     
-    // Create circular assignment: each person gets the photo of the person before them
-    // For the first person, they get the last person's photo
-    const result: string[] = [];
+    let result = [...arr];
+    let attempts = 0;
+    const maxAttempts = 1000; // Prevent infinite loops
     
-    for (let i = 0; i < n; i++) {
-      // Each user gets the photo of the user before them in the array
-      // For the first user (i=0), they get the last user's photo (i=n-1)
-      const previousIndex = i === 0 ? n - 1 : i - 1;
-      result.push(arr[previousIndex]);
+    // Keep shuffling until we get a valid derangement
+    while (attempts < maxAttempts) {
+      // Fisher-Yates shuffle
+      for (let i = n - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+      
+      // Check if it's a valid derangement
+      let isValid = true;
+      for (let i = 0; i < n; i++) {
+        if (result[i] === arr[i]) {
+          isValid = false;
+          break;
+        }
+      }
+      
+      if (isValid) return result;
+      attempts++;
     }
     
-    console.log('Circular photo assignment created:', arr.map((userId, i) => `${userId} -> ${result[i]}`));
-    return result;
+    // Fallback: create a simple rotation if random approach fails
+    console.log('Using rotation fallback for derangement');
+    return [...arr.slice(1), arr[0]];
   };
 
   // Assign photos to all users at once using derangement
@@ -341,17 +357,12 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       );
     }
     
-    // Create new assignments using circular assignment based on groupMembers order
-    console.log('Creating circular photo assignments for all users');
-    
-    // Use the groupMembers array order to ensure consistent assignment
-    // Filter to only include members who have submitted photos
-    const orderedMembersWithPhotos = groupMembers.filter(memberId => usersWithPhotos.includes(memberId));
-    
-    const shuffledUserIds = generateDerangement(orderedMembersWithPhotos);
+    // Create new assignments using derangement
+    console.log('Creating photo assignments for all users');
+    const shuffledUserIds = generateDerangement(usersWithPhotos);
     const assignments: Record<string, string> = {};
     
-    orderedMembersWithPhotos.forEach((userId, index) => {
+    usersWithPhotos.forEach((userId, index) => {
       const assignedUserId = shuffledUserIds[index];
       const assignedPhoto = photos.find(p => p.userId === assignedUserId);
       if (assignedPhoto) {
@@ -548,7 +559,7 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
         >
           <View style={styles.gameContentWrapper}>
                       <Text style={styles.gamePromptLabel}>CAPTION</Text>
-          <Text style={styles.gamePromptText}>who in the group would be most likely to use this weapon?</Text>
+          <Text style={styles.gamePromptText}>who do you think ?</Text>
             
             <View style={styles.gamePhotoContainer}>
               <Image source={{ uri: assignedPhoto.uri }} style={styles.gamePhoto} />

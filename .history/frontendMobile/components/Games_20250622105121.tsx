@@ -341,17 +341,12 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
       );
     }
     
-    // Create new assignments using circular assignment based on groupMembers order
-    console.log('Creating circular photo assignments for all users');
-    
-    // Use the groupMembers array order to ensure consistent assignment
-    // Filter to only include members who have submitted photos
-    const orderedMembersWithPhotos = groupMembers.filter(memberId => usersWithPhotos.includes(memberId));
-    
-    const shuffledUserIds = generateDerangement(orderedMembersWithPhotos);
+    // Create new assignments using derangement
+    console.log('Creating photo assignments for all users');
+    const shuffledUserIds = generateDerangement(usersWithPhotos);
     const assignments: Record<string, string> = {};
     
-    orderedMembersWithPhotos.forEach((userId, index) => {
+    usersWithPhotos.forEach((userId, index) => {
       const assignedUserId = shuffledUserIds[index];
       const assignedPhoto = photos.find(p => p.userId === assignedUserId);
       if (assignedPhoto) {

@@ -41,7 +41,7 @@ const DAILY_PROMPTS = [
 const getTodaysPrompt = () => {
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
   // return DAILY_PROMPTS[dayOfYear % DAILY_PROMPTS.length];
-  return "An object that could be a cartoon weapon"
+  return "An object that could be",
 };
 
 
