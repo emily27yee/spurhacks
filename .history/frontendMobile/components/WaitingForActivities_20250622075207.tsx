@@ -147,7 +147,7 @@ export default function WaitingForActivities({ selectedGroupId, onActivityReady 
   return (
     <SafeAreaView style={styles.container}>
       {/* Decorative scribble */}
-      <View style={styles.topScribble} />
+      {/* <View style={styles.topScribble} /> */}
       
       {/* Top image */}
       <Image 

@@ -88,8 +88,8 @@ export default function LoginScreen() {
         </TouchableOpacity>
         */}
 
-        <View style={styles.topBeigeBox} />
-        <View style={styles.topScribble} />
+        {/* <View style={styles.topBeigeBox} /> */}
+        {/* <View style={styles.topScribble} /> */}
 
         {/* Illustration */}
         <View style={styles.illustrationContainer}>
@@ -144,7 +144,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
         
-        <View style={styles.bottomScribble} />
+        {/* <View style={styles.bottomScribble} /> */}
 
       </ScrollView>
       </KeyboardAvoidingView>

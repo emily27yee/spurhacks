@@ -136,7 +136,7 @@ export default function WaitingForResults({ selectedGroupId, gameType, onResults
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topScribble} />
+      {/* <View style={styles.topScribble} /> */}
       <ScrollView contentContainerStyle={styles.contentWrapper}>
         <Text style={styles.promptLabel}>STATUS</Text>
         <Text style={styles.promptText}>waiting for results</Text>

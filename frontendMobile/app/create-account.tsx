@@ -96,8 +96,8 @@ export default function CreateAccountScreen() {
                  {/* Navigation Buttons */}
          <NavigationButtons showGroupsButton={false} position="bottom" />
 
-        <View style={styles.topBeigeBox} />
-        <View style={styles.topScribble} />
+        {/* <View style={styles.topBeigeBox} /> */}
+        {/* <View style={styles.topScribble} /> */}
 
         {/* Illustration */}
         <View style={styles.illustrationContainer}>
@@ -169,7 +169,7 @@ export default function CreateAccountScreen() {
           </TouchableOpacity>
         </View>
         
-        <View style={styles.bottomScribble} />
+        {/* <View style={styles.bottomScribble} /> */}
 
       </ScrollView>
       </KeyboardAvoidingView>

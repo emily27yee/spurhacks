@@ -29,6 +29,7 @@ export default function SplashScreen() {
         player={player}
         contentFit="fill"
         allowsFullscreen={false}
+        nativeControls={false}
       />
     </View>
   );

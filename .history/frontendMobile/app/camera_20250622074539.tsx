@@ -587,7 +587,7 @@ export default function CameraScreen() {
         <NavigationButtons position="bottom" />
 
         {/* Decorative scribble */}
-        <View style={styles.topScribble} />
+        {/* <View style={styles.topScribble} /> */}
         
         {/* Top right image */}
         <Image 

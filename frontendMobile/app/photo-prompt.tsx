@@ -28,7 +28,7 @@ export default function PhotoPromptScreen() {
        <NavigationButtons position="bottom" />
 
       {/* Decorative scribble */}
-      <View style={styles.topScribble} />
+      {/* <View style={styles.topScribble} /> */}
 
       {/* Prompt content */}
       <View style={styles.contentWrapper}>
