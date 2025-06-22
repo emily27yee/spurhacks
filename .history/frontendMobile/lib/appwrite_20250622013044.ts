@@ -76,11 +76,7 @@ export const appwriteAuth = {
     try {
       await account.deleteSession('current');
       return true;
-    } catch (error: any) {
-      // Suppress expected errors for already-logged-out users
-      if (error?.code === 401 || error?.message?.includes('missing scope')) {
-        return true;
-      }
+    } catch (error) {
       console.error('Error signing out:', error);
       throw error;
     }

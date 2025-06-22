@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { router } from 'expo-router';
 import { appwriteAuth, appwriteDatabase } from '@/lib/appwrite';
 
 interface User {
@@ -120,8 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       // Always clear the user from the state.
       setUser(null);
-      // Navigate to login page
-      router.replace('/login');
     }
   };
 

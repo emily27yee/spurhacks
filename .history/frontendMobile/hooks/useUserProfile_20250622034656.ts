@@ -60,8 +60,7 @@ export const useUserProfile = () => {
       console.error('Error fetching user profile:', error);
       
       // If permission error, session is likely invalid, so log out
-      if ((error?.code === 401 || error?.code === 403) && user) {
-        setError('Session expired. Please log in again.');
+      if (error?.code === 401 || error?.code === 403) {
         setTimeout(logout, 0);
         return;
       }

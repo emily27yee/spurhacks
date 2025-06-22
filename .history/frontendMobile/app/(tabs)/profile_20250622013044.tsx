@@ -15,7 +15,7 @@ interface PastPhoto {
 
 const Profile = () => {
     const { user, logout } = useAuth();
-    const { userProfile, isLoading: profileLoading, updateProfile, error: profileError } = useUserProfile();
+    const { userProfile, isLoading: profileLoading, updateProfile } = useUserProfile();
     const { userGroups, isLoading: groupsLoading } = useGroups();
     const [userPhotos, setUserPhotos] = useState<PastPhoto[]>([]);
     const [photosLoading, setPhotosLoading] = useState<boolean>(true);
@@ -97,20 +97,8 @@ const Profile = () => {
     
       if (!userProfile) {
         return (
-          <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
-            <Text style={{ color: Colors.dark_text, marginBottom: 16 }}>
-              {profileError === 'Session expired. Please log in again.'
-                ? 'Session expired. Please log in again.'
-                : 'Could not load profile.'}
-            </Text>
-            {profileError === 'Session expired. Please log in again.' && (
-              <TouchableOpacity
-                style={{ backgroundColor: Colors.orange, padding: 12, borderRadius: 8 }}
-                onPress={logout}
-              >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Go to Login</Text>
-              </TouchableOpacity>
-            )}
+          <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{ color: Colors.dark_text }}>Could not load profile.</Text>
           </View>
         );
       }
