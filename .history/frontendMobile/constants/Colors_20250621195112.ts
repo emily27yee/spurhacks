@@ -7,8 +7,10 @@ const tintColorLight = '#0a7ea4';
 const tintColorDark = '#4ECDC4'; // Changed from white to a teal color for better visibility
 
 export const Colors = {
-  orange: '#EB5825',
-  cream: '#E7D9CC',
+  orange: '#F26F3F',
+  cream: '/* The lines `#F5EFE6`, `#FFC700`, `#333333`, and `#FF5A5A` are defining specific color
+  values in hexadecimal format for different colors in the app's color palette. */
+  #F5EFE6',
   yellow: '#FFC700',
   dark_text: '#333333',
   red: '#FF5A5A',

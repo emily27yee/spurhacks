@@ -8,7 +8,7 @@ const tintColorDark = '#4ECDC4'; // Changed from white to a teal color for bette
 
 export const Colors = {
   orange: '#EB5825',
-  cream: '#E7D9CC',
+  cream: '#e7d9cc',
   yellow: '#FFC700',
   dark_text: '#333333',
   red: '#FF5A5A',

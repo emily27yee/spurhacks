@@ -142,36 +142,17 @@ export const useGroups = () => {
   const leaveGroup = async (groupId: string) => {
     if (!user) throw new Error('User not authenticated');
 
-    const originalUserGroups = [...userGroups];
-    const originalAllGroups = [...allGroups];
-
-    // Optimistically update the UI
-    setUserGroups(prev => prev.filter(g => g.$id !== groupId));
-    setAllGroups(prev => prev.map(g => {
-        if (g.$id === groupId) {
-          const newMembers = g.members.filter(m => m.userId !== user.$id);
-          return {
-            ...g,
-            isUserMember: false,
-            members: newMembers,
-            memberCount: newMembers.length,
-            userRole: null,
-          };
-        }
-        return g;
-      })
-    );
-    
     try {
+      setIsLoading(true);
       await appwriteDatabase.leaveGroup(groupId, user.$id);
-      fetchUserGroups(true);
-      fetchAllGroups();
+      await fetchUserGroups(false); // Refresh user groups with loading
+      await fetchAllGroups(); // Refresh all groups to update member counts
+      return true;
     } catch (error) {
-      // If the API call fails, revert the UI changes
-      setUserGroups(originalUserGroups);
-      setAllGroups(originalAllGroups);
       console.error('Error leaving group:', error);
-      throw error; // Re-throw to be handled by the component
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

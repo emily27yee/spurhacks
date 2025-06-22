@@ -1,29 +1,21 @@
 import { View, Text, StyleSheet, ScrollView, Image, Dimensions, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Colors } from '@/constants/Colors'
 import { useGroups, type Group } from '@/hooks/useGroups';
 import { useAuth } from '@/contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 
-const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLeft, onPressRight }: { group: Group, onLeave: (group: Group) => void, showLeftArrow: boolean, showRightArrow: boolean, onPressLeft: () => void, onPressRight: () => void }) => (
+const GroupDisplay = ({ group, onLeave }: { group: Group, onLeave: (group: Group) => void }) => (
     <View style={styles.groupContainer}>
         <View style={styles.topSection}>
             <Image source={require('@/assets/images/react-logo.png')} style={styles.groupImage} />
             <Text style={styles.caption}>[caption if applicable]</Text>
         </View>
         <View style={styles.groupNameContainer}>
-            {showLeftArrow ? (
-                <TouchableOpacity onPress={onPressLeft}>
-                    <Text style={styles.arrow}>◀</Text>
-                </TouchableOpacity>
-            ) : <View style={styles.arrowPlaceholder} />}
+            <Text style={styles.arrow}>◀</Text>
             <Text style={styles.groupName}>{group.name}</Text>
-            {showRightArrow ? (
-                <TouchableOpacity onPress={onPressRight}>
-                    <Text style={styles.arrow}>▶</Text>
-                </TouchableOpacity>
-            ) : <View style={styles.arrowPlaceholder} />}
+            <Text style={styles.arrow}>▶</Text>
         </View>
         <ScrollView style={styles.membersList}>
             {group.members.map((member, index) => (
@@ -35,14 +27,14 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                     </View>
                 </View>
             ))}
-            <TouchableOpacity style={styles.leaveButton} onPress={() => onLeave(group)}>
-                <Text style={styles.leaveButtonText}>Leave group</Text>
-            </TouchableOpacity>
         </ScrollView>
+        <TouchableOpacity style={styles.leaveButton} onPress={() => onLeave(group)}>
+            <Text style={styles.leaveButtonText}>Leave group</Text>
+        </TouchableOpacity>
     </View>
 );
 
-const CreateDiscover = ({ onCreate, onJoin, discoverableGroups, showLeftArrow, onPressLeft }: { onCreate: (name: string) => void, onJoin: (group: Group) => void, discoverableGroups: Group[], showLeftArrow: boolean, onPressLeft: () => void }) => {
+const CreateDiscover = ({ onCreate, onJoin, discoverableGroups }: { onCreate: (name: string) => void, onJoin: (group: Group) => void, discoverableGroups: Group[] }) => {
     const [newGroupName, setNewGroupName] = useState('');
   
     const handleCreate = () => {
@@ -57,15 +49,7 @@ const CreateDiscover = ({ onCreate, onJoin, discoverableGroups, showLeftArrow, o
     return (
       <View style={[styles.groupContainer, styles.createDiscoverContainer]}>
         <ScrollView>
-            <View style={styles.groupNameContainer}>
-                {showLeftArrow ? (
-                    <TouchableOpacity onPress={onPressLeft}>
-                        <Text style={styles.arrow}>◀</Text>
-                    </TouchableOpacity>
-                ) : <View style={styles.arrowPlaceholder} />}
-                <Text style={styles.discoverTitle}>Create or Discover</Text>
-                <View style={styles.arrowPlaceholder} />
-            </View>
+            <Text style={styles.discoverTitle}>Create or Discover</Text>
     
             <View style={styles.createSection}>
                 <TextInput
@@ -114,18 +98,11 @@ const Groups = () => {
         leaveGroup,
         fetchAllGroups,
     } = useGroups();
-    const scrollRef = useRef<ScrollView>(null);
 
     useEffect(() => {
         fetchAllGroups();
     }, []);
     
-    const handleScrollTo = (pageIndex: number) => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTo({ x: pageIndex * width, animated: true });
-        }
-    };
-
     const discoverableGroups = allGroups.filter(group => !group.isUserMember);
 
     const handleCreateGroup = async (name: string) => {
@@ -172,29 +149,18 @@ const Groups = () => {
     <View style={{flex: 1, backgroundColor: Colors.cream}}>
         {isLoading && <ActivityIndicator style={StyleSheet.absoluteFill} size="large" color={Colors.orange} />}
         <ScrollView 
-            ref={scrollRef}
             horizontal 
             pagingEnabled 
             showsHorizontalScrollIndicator={false}
             style={styles.container}
             scrollEnabled={!isLoading}
         >
-            {userGroups.map((group, index) => <GroupDisplay 
-                key={group.$id} 
-                group={group} 
-                onLeave={handleLeaveGroup}
-                showLeftArrow={index > 0}
-                showRightArrow={true}
-                onPressLeft={() => handleScrollTo(index - 1)}
-                onPressRight={() => handleScrollTo(index + 1)}
-            />)}
             <CreateDiscover 
                 onCreate={handleCreateGroup}
                 onJoin={handleJoinGroup}
                 discoverableGroups={discoverableGroups}
-                showLeftArrow={userGroups.length > 0}
-                onPressLeft={() => handleScrollTo(userGroups.length - 1)}
             />
+            {userGroups.map(group => <GroupDisplay key={group.$id} group={group} onLeave={handleLeaveGroup} />)}
         </ScrollView>
     </View>
   )
@@ -237,10 +203,6 @@ const styles = StyleSheet.create({
     arrow: {
         fontSize: 24,
         color: Colors.orange,
-        padding: 10,
-    },
-    arrowPlaceholder: {
-        width: 44, // Roughly the size of the arrow touchable
     },
     groupName: {
         fontSize: 20,
@@ -296,7 +258,8 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
         color: Colors.dark_text,
-        marginHorizontal: 10,
+        textAlign: 'center',
+        marginBottom: 20,
     },
     createSection: {
         marginBottom: 30,

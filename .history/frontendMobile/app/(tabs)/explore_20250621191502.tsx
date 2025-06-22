@@ -368,6 +368,18 @@ export default function ProfileScreen() {
 
       {/* Settings section removed as per requirements */}
 
+      {/* Logout Button */}
+      <ThemedView style={styles.section}>
+        <TouchableOpacity 
+          onPress={logout}
+          style={[styles.logoutButton, { borderColor: colors.text + '30' }]}
+        >
+          <ThemedText style={[styles.logoutButtonText, { color: '#FF3B30' }]}>
+            Sign Out
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+
       {/* Group Discovery Modal */}
       <Modal
         visible={showJoinableGroups}

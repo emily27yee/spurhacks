@@ -46,6 +46,32 @@ export default function ProfileScreen() {
     }
   }, [userProfile]);
 
+  // Fetch user's past photos once on mount
+  useEffect(() => {
+    const fetchPastPhotos = async () => {
+      if (!user?.$id) return;
+      try {
+        const docs: any[] = await appwriteDatabase.getUserPhotos(user.$id);
+        const mapped: PastPhoto[] = await Promise.all(docs.map(async (doc: any) => {
+          const photoId = doc.$id; // Document ID is the photo ID in storage
+          const url = await appwriteDatabase.getPhotoUrl(photoId, 200, 200);
+          return {
+            photoId,
+            url: url || '', // Ensure it's a string
+            created: (doc.$createdAt || doc.created) as string,
+          };
+        }));
+        mapped.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+        console.log('Fetched user photos:', mapped);
+        setUserPhotos(mapped);
+      } catch (err) {
+        console.error('Error fetching past photos:', err);
+      }
+    };
+
+    fetchPastPhotos();
+  }, [user?.$id]);
+
   // Manual refresh function for discover button
   const handleRefreshGroups = () => {
     fetchUserGroups(false); // Show loading when manually refreshing
@@ -367,6 +393,18 @@ export default function ProfileScreen() {
       </ThemedView>
 
       {/* Settings section removed as per requirements */}
+
+      {/* Logout Button */}
+      <ThemedView style={styles.section}>
+        <TouchableOpacity 
+          onPress={logout}
+          style={[styles.logoutButton, { borderColor: colors.text + '30' }]}
+        >
+          <ThemedText style={[styles.logoutButtonText, { color: '#FF3B30' }]}>
+            Sign Out
+          </ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
 
       {/* Group Discovery Modal */}
       <Modal

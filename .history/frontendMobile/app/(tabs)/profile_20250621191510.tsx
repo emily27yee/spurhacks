@@ -1,9 +1,7 @@
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { Colors } from '@/constants/Colors'
 import { useAuth } from '@/contexts/AuthContext'
-import { useUserProfile } from '@/hooks/useUserProfile'
-import { useGroups } from '@/hooks/useGroups'
 import { appwriteDatabase } from '@/lib/appwrite'
 
 interface PastPhoto {
@@ -13,9 +11,7 @@ interface PastPhoto {
 }
 
 const Profile = () => {
-    const { user, logout } = useAuth();
-    const { userProfile, isLoading: profileLoading } = useUserProfile();
-    const { userGroups, isLoading: groupsLoading } = useGroups();
+    const { user } = useAuth();
     const [userPhotos, setUserPhotos] = useState<PastPhoto[]>([]);
     const [photosLoading, setPhotosLoading] = useState<boolean>(true);
 
@@ -46,29 +42,12 @@ const Profile = () => {
         fetchPastPhotos();
       }, [user?.$id]);
 
-      if (profileLoading || groupsLoading) {
-        return (
-          <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color={Colors.orange} />
-            <Text style={{ color: Colors.dark_text, marginTop: 10 }}>Loading profile...</Text>
-          </View>
-        );
-      }
-    
-      if (!userProfile) {
-        return (
-          <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{ color: Colors.dark_text }}>Could not load profile.</Text>
-          </View>
-        );
-      }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.profileBanner}>
-          <Text style={styles.profileName}>{userProfile.name}</Text>
-          <Text style={styles.profileUsername}>@{userProfile.username}</Text>
+          <Text style={styles.profileName}>Name name</Text>
+          <Text style={styles.profileUsername}>@username</Text>
         </View>
         <View style={styles.profileImageContainer}>
             <View style={styles.profileImage}/>
@@ -81,19 +60,19 @@ const Profile = () => {
                 <View style={styles.stats}>
                     <View style={styles.stat}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>{userProfile.totalPhotos ?? 0}</Text>
+                            <Text style={styles.statValue}>127</Text>
                         </View>
                         <Text style={styles.statLabel}>Photos Shared</Text>
                     </View>
                     <View style={styles.stat}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>{userProfile.weeksActive ?? 0}</Text>
+                            <Text style={styles.statValue}>1</Text>
                         </View>
                         <Text style={styles.statLabel}>Weeks Active</Text>
                     </View>
                     <View style={styles.stat}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>{userGroups.length}</Text>
+                            <Text style={styles.statValue}>2</Text>
                         </View>
                         <Text style={styles.statLabel}>Groups Joined</Text>
                     </View>
@@ -103,19 +82,19 @@ const Profile = () => {
                 <Text style={styles.sectionTitle}>profile info</Text>
                 <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>name</Text>
-                    <Text style={styles.infoValue}>{userProfile.name}</Text>
+                    <Text style={styles.infoValue}>Name name</Text>
                 </View>
                 <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>email</Text>
-                    <Text style={styles.infoValue}>{userProfile.email}</Text>
+                    <Text style={styles.infoValue}>Email@email.com</Text>
                 </View>
                 <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>username</Text>
-                    <Text style={styles.infoValue}>@{userProfile.username}</Text>
+                    <Text style={styles.infoValue}>@username</Text>
                 </View>
                 <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>member since</Text>
-                    <Text style={styles.infoValue}>{userProfile.joinDate}</Text>
+                    <Text style={styles.infoValue}>Mon ##, ####</Text>
                 </View>
             </View>
             <View style={styles.photosContainer}>
@@ -139,9 +118,6 @@ const Profile = () => {
                   </ScrollView>
                 )}
             </View>
-            <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-                <Text style={styles.logoutButtonText}>Sign Out</Text>
-            </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -270,19 +246,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
         opacity: 0.7,
         color: Colors.dark_text,
-    },
-    logoutButton: {
-        borderWidth: 1,
-        borderColor: Colors.red,
-        borderRadius: 20,
-        paddingVertical: 15,
-        alignItems: 'center',
-        marginTop: 30,
-    },
-    logoutButtonText: {
-        color: Colors.red,
-        fontSize: 16,
-        fontWeight: 'bold',
     },
 })
 

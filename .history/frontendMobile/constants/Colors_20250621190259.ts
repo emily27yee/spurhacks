@@ -7,8 +7,8 @@ const tintColorLight = '#0a7ea4';
 const tintColorDark = '#4ECDC4'; // Changed from white to a teal color for better visibility
 
 export const Colors = {
-  orange: '#EB5825',
-  cream: '#E7D9CC',
+  orange: '#F26F3F',
+  cream: '#F5EFE6',
   yellow: '#FFC700',
   dark_text: '#333333',
   red: '#FF5A5A',

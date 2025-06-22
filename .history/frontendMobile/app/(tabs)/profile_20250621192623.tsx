@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { Colors } from '@/constants/Colors'
 import { useAuth } from '@/contexts/AuthContext'
@@ -13,7 +13,7 @@ interface PastPhoto {
 }
 
 const Profile = () => {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const { userProfile, isLoading: profileLoading } = useUserProfile();
     const { userGroups, isLoading: groupsLoading } = useGroups();
     const [userPhotos, setUserPhotos] = useState<PastPhoto[]>([]);
@@ -139,9 +139,6 @@ const Profile = () => {
                   </ScrollView>
                 )}
             </View>
-            <TouchableOpacity onPress={logout} style={styles.logoutButton}>
-                <Text style={styles.logoutButtonText}>Sign Out</Text>
-            </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -270,19 +267,6 @@ const styles = StyleSheet.create({
         marginTop: 4,
         opacity: 0.7,
         color: Colors.dark_text,
-    },
-    logoutButton: {
-        borderWidth: 1,
-        borderColor: Colors.red,
-        borderRadius: 20,
-        paddingVertical: 15,
-        alignItems: 'center',
-        marginTop: 30,
-    },
-    logoutButtonText: {
-        color: Colors.red,
-        fontSize: 16,
-        fontWeight: 'bold',
     },
 })
 
