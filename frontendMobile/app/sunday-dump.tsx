@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Colors } from '@/constants/Colors'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { appwriteDatabase } from '@/lib/appwrite'
+import * as MediaLibrary from 'expo-media-library'
+import { captureRef } from 'react-native-view-shot'
 
 export default function SundayDump() {
     const router = useRouter()
@@ -12,6 +14,8 @@ export default function SundayDump() {
     const [photos, setPhotos] = useState<Array<{url: string, caption: string}>>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [saving, setSaving] = useState(false)
+    const photoRefs = useRef<Array<any>>([])
 
     const groupId = params.groupId as string
     const groupName = params.groupName as string
@@ -144,6 +148,40 @@ export default function SundayDump() {
         router.back()
     }
 
+    const saveStory = async () => {
+        try {
+            setSaving(true)
+            
+            // TODO: Install expo-media-library and react-native-view-shot first
+            // Request permission to access media library
+            const { status } = await MediaLibrary.requestPermissionsAsync()
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'Please grant permission to save photos to your camera roll.')
+                return
+            }
+
+            //Capture each photo with caption
+            for (let i = 0; i < photos.length; i++) {
+                if (photoRefs.current[i]) {
+                    const uri = await captureRef(photoRefs.current[i], {
+                        format: 'png',
+                        quality: 1,
+                    })
+                    
+                    // Save to camera roll
+                    await MediaLibrary.saveToLibraryAsync(uri)
+                }
+            }
+
+            //Alert.alert('Coming Soon!', 'Save functionality will be available after installing required packages.')
+        } catch (error) {
+            console.error('Error saving story:', error)
+            Alert.alert('Error', 'Failed to save photos. Please try again.')
+        } finally {
+            setSaving(false)
+        }
+    }
+
     return (
         <View style={styles.container}>
             {/* Top section with title and back button */}
@@ -151,7 +189,7 @@ export default function SundayDump() {
                 <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
                     <Text style={styles.backButtonText}>Go back to Groups</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Sunday Dump</Text>
+                <Text style={styles.title}>Daily Dump</Text>
                 {groupName && <Text style={styles.groupName}>{groupName}</Text>}
             </View>            {/* Main content area */}
             <ScrollView style={styles.contentArea} contentContainerStyle={styles.scrollContent}>
@@ -170,17 +208,30 @@ export default function SundayDump() {
                     <View style={styles.photosContainer}>
                         <Text style={styles.instructionText}>
                             Sit back and let AI turn your photos into funny captions you can share with friends!
-                        </Text>
-                        {photos.map((photo, index) => (
-                            <View key={index} style={styles.photoContainer}>
+                        </Text>                        {photos.map((photo, index) => (
+                            <View 
+                                key={index} 
+                                style={styles.photoContainer}
+                                ref={(ref) => { photoRefs.current[index] = ref }}
+                            >
                                 <Image 
                                     source={{ uri: photo.url }} 
                                     style={styles.photo}
                                     resizeMode="cover"
                                 />
                                 <Text style={styles.photoCaption}>{photo.caption}</Text>
-                            </View>
-                        ))}
+                            </View>                        ))}
+                        
+                        {/* Save Story Button */}
+                        <TouchableOpacity 
+                            style={[styles.saveButton, saving && styles.saveButtonDisabled]} 
+                            onPress={saveStory}
+                            disabled={saving}
+                        >
+                            <Text style={styles.saveButtonText}>
+                                {saving ? 'Saving...' : 'Save Story'}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
                     <Text style={styles.placeholderText}>No story generated yet...</Text>
@@ -301,14 +352,36 @@ const styles = StyleSheet.create({
         height: 250,
         borderRadius: 15,
         marginBottom: 10,
-    },
-    photoCaption: {
+    },    photoCaption: {
         fontSize: 16,
         color: Colors.dark_text,
         textAlign: 'center',
         fontStyle: 'italic',
         lineHeight: 22,
         paddingHorizontal: 10,
+    },
+    saveButton: {
+        backgroundColor: Colors.orange,
+        paddingVertical: 15,
+        paddingHorizontal: 30,
+        borderRadius: 25,
+        alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    saveButtonDisabled: {
+        backgroundColor: Colors.dark_text,
+        opacity: 0.6,
+    },
+    saveButtonText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
     },
     storyTitle: {
         fontSize: 24,
