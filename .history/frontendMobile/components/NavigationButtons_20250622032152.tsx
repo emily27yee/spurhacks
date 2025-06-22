@@ -30,7 +30,7 @@ const NavigationButtons = ({
 
   const handleCameraPress = () => {
     console.log('Camera button pressed');
-    router.push('/camera');
+    router.push('/(tabs)');
   };
 
   const containerStyle = position === 'top' ? styles.topContainer : styles.bottomContainer;
