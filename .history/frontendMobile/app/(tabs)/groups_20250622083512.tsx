@@ -155,9 +155,7 @@ const GroupDisplay = ({ group, onLeave, showLeftArrow, showRightArrow, onPressLe
                         </View>
                         
                         {currentComment && (
-                            <Text style={styles.photoCommentText}>
-                                <Text>"</Text>{currentComment}<Text>"</Text>
-                            </Text>
+                            <Text style={styles.photoCommentText}>"{currentComment}"</Text>
                         )}
                         
                         {groupPhotos.length > 1 && (

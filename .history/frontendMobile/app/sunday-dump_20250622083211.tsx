@@ -85,17 +85,13 @@ export default function SundayDump() {
                 setError('No photos found for this group today.')
                 setLoading(false)
                 return
-            }
-            
-            // Initialize Gemini
+            }            // Initialize Gemini
             const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY
             if (!apiKey) {
                 throw new Error('Gemini API key not found. Please check your environment variables.')
             }
             const genAI = new GoogleGenerativeAI(apiKey)
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
-            
-            // Create prompt for story generation with images
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })            // Create prompt for story generation with images
             const prompt = `Look at these ${photoData.length} photos from a group of friends. For each photo, write exactly ONE sentence that describes what's happening or creates a funny story element. 
 
             Requirements:
@@ -107,9 +103,7 @@ export default function SundayDump() {
             - Just provide the numbered sentences, nothing else
             - Keep all content completely appropriate and family-friendly
             
-            Important: Ensure the story is funny. A genuinely funny story is surprising, relatable, and emotionally honest — it builds naturally, respects the audience's intelligence, and doesn't try too hard. Corny stories feel forced, predictable, or overly explained, often relying on clichés instead of real character or situational humor. Additionally, ensure that the story avoids anything inappropriate and maintains a wholesome, clean tone suitable for all audiences.`
-            
-            // Prepare the content array with text prompt and images
+            Important: Ensure the story is funny. A genuinely funny story is surprising, relatable, and emotionally honest — it builds naturally, respects the audience's intelligence, and doesn't try too hard. Corny stories feel forced, predictable, or overly explained, often relying on clichés instead of real character or situational humor. Additionally, ensure that the story avoids anything inappropriate and maintains a wholesome, clean tone suitable for all audiences.`// Prepare the content array with text prompt and images
             const contentParts: any[] = [
                 { text: prompt }
             ]
@@ -147,8 +141,7 @@ export default function SundayDump() {
             setStory(sentences)
         } catch (err) {
             console.error('Error generating story:', err)
-            setError('Failed to generate story. Please try again.')
-        } finally {
+            setError('Failed to generate story. Please try again.')        } finally {
             setLoading(false)
         }
     }
@@ -200,8 +193,7 @@ export default function SundayDump() {
                 </TouchableOpacity>
                 <Text style={styles.title}>Daily Dump</Text>
                 {groupName && <Text style={styles.groupName}>{groupName}</Text>}
-            </View>
-            {/* Main content area */}
+            </View>            {/* Main content area */}
             <ScrollView style={styles.contentArea} contentContainerStyle={styles.scrollContent}>
                 {loading ? (
                     <View style={styles.loadingContainer}>
@@ -214,14 +206,11 @@ export default function SundayDump() {
                         <TouchableOpacity style={styles.retryButton} onPress={generateStory}>
                             <Text style={styles.retryButtonText}>Try Again</Text>
                         </TouchableOpacity>
-                    </View>
-                ) : photos.length > 0 ? (
+                    </View>                ) : photos.length > 0 ? (
                     <View style={styles.photosContainer}>
                         <Text style={styles.instructionText}>
                             Sit back and let AI turn your photos into funny captions you can share with friends!
-                        </Text>
-                        
-                        {photos.map((photo, index) => (
+                        </Text>                        {photos.map((photo, index) => (
                             <View 
                                 key={index} 
                                 style={styles.photoContainer}
@@ -233,8 +222,7 @@ export default function SundayDump() {
                                     resizeMode="cover"
                                 />
                                 <Text style={styles.photoCaption}>{photo.caption}</Text>
-                            </View>
-                        ))}
+                            </View>                        ))}
                         
                         {/* Save Story Button */}
                         <TouchableOpacity 

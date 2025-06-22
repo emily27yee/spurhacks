@@ -147,8 +147,7 @@ export default function SundayDump() {
             setStory(sentences)
         } catch (err) {
             console.error('Error generating story:', err)
-            setError('Failed to generate story. Please try again.')
-        } finally {
+            setError('Failed to generate story. Please try again.')        } finally {
             setLoading(false)
         }
     }
@@ -200,8 +199,7 @@ export default function SundayDump() {
                 </TouchableOpacity>
                 <Text style={styles.title}>Daily Dump</Text>
                 {groupName && <Text style={styles.groupName}>{groupName}</Text>}
-            </View>
-            {/* Main content area */}
+            </View>            {/* Main content area */}
             <ScrollView style={styles.contentArea} contentContainerStyle={styles.scrollContent}>
                 {loading ? (
                     <View style={styles.loadingContainer}>
@@ -214,14 +212,11 @@ export default function SundayDump() {
                         <TouchableOpacity style={styles.retryButton} onPress={generateStory}>
                             <Text style={styles.retryButtonText}>Try Again</Text>
                         </TouchableOpacity>
-                    </View>
-                ) : photos.length > 0 ? (
+                    </View>                ) : photos.length > 0 ? (
                     <View style={styles.photosContainer}>
                         <Text style={styles.instructionText}>
                             Sit back and let AI turn your photos into funny captions you can share with friends!
-                        </Text>
-                        
-                        {photos.map((photo, index) => (
+                        </Text>                        {photos.map((photo, index) => (
                             <View 
                                 key={index} 
                                 style={styles.photoContainer}
@@ -233,8 +228,7 @@ export default function SundayDump() {
                                     resizeMode="cover"
                                 />
                                 <Text style={styles.photoCaption}>{photo.caption}</Text>
-                            </View>
-                        ))}
+                            </View>                        ))}
                         
                         {/* Save Story Button */}
                         <TouchableOpacity 

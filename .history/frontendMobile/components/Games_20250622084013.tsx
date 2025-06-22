@@ -652,8 +652,8 @@ export default function Games({ selectedGroupId, onNavigateToCamera }: GamesProp
                   <Image source={{ uri: photo.uri }} style={styles.resultPhoto} />
                   <View style={styles.resultVoteInfo}>
                     <Text style={styles.resultVoteCount}>
-                      {index === 0 && voteCounts[photo.id] > 0 ? <Text>👑 </Text> : null}
-                      {voteCounts[photo.id]} <Text>{voteCounts[photo.id] === 1 ? 'vote' : 'votes'}</Text>
+                      {index === 0 && voteCounts[photo.id] > 0 ? '👑 ' : ''}
+                      {voteCounts[photo.id]} {voteCounts[photo.id] === 1 ? 'vote' : 'votes'}
                     </Text>
                   </View>
                 </View>

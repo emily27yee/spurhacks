@@ -26,6 +26,11 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            textTransform: 'lowercase',
+          },
         }}
       />
       <Tabs.Screen
@@ -33,6 +38,11 @@ export default function TabLayout() {
         options={{
           title: 'Groups',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.3.fill" color={color} />,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            textTransform: 'lowercase',
+          },
         }}
       />
       <Tabs.Screen
@@ -40,6 +50,11 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+            textTransform: 'lowercase',
+          },
         }}
       />
 
