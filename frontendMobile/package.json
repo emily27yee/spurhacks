@@ -2,6 +2,7 @@
   "name": "dumpsterfire",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -12,10 +13,12 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@google/generative-ai": "^0.24.1",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
     "appwrite": "^18.1.1",
+    "dotenv": "^16.5.0",
     "expo": "~53.0.12",
     "expo-asset": "~11.1.5",
     "expo-blur": "~14.1.5",
@@ -27,6 +30,7 @@
     "expo-image": "~2.3.0",
     "expo-image-picker": "^16.1.4",
     "expo-linking": "~7.1.5",
+    "expo-media-library": "~17.1.7",
     "expo-router": "~5.1.0",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "~2.2.3",
@@ -43,6 +47,7 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
+    "react-native-view-shot": "4.0.3",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5"
   },
@@ -51,6 +56,7 @@
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "private": true
