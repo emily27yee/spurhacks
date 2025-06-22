@@ -615,21 +615,11 @@ export default function CameraScreen() {
             </TouchableOpacity>
           </View>
 
-          {availableGroups.length === 0 && userGroups.length > 0 ? (
-            <View style={{ alignItems: 'center', marginTop: 20 }}>
-              <Text style={[styles.noGroupsText, { fontSize: 18, fontWeight: '600', marginBottom: 10 }]}>
-                🎉 All caught up!
-              </Text>
-              <Text style={[styles.noGroupsText, { textAlign: 'center', lineHeight: 20 }]}>
-                You've shared today's photo with all your groups.{'\n'}
-                Check back tomorrow for a new prompt!
-              </Text>
-            </View>
-          ) : availableGroups.length === 0 ? (
+          {availableGroups.length === 0 && (
             <Text style={styles.noGroupsText}>
               Join or create a group in your profile to start sharing photos!
             </Text>
-          ) : null}
+          )}
         </View>
       </View>
 

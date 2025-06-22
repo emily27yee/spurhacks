@@ -96,9 +96,8 @@ export default function CameraScreen() {
   // Check if user should be redirected to waiting screen
   useEffect(() => {
     if (!groupsLoading && availableGroups.length === 0 && userGroups.length > 0) {
-      // User has uploaded to all groups, but don't redirect automatically
-      // Instead, show a different UI state
-      console.log('User has uploaded to all groups');
+      // User has uploaded to all groups, redirect to waiting screen
+      router.replace('/waiting-for-activities' as any);
     }
   }, [availableGroups, userGroups, groupsLoading]);
   const handleTakePhoto = async () => {
@@ -615,21 +614,11 @@ export default function CameraScreen() {
             </TouchableOpacity>
           </View>
 
-          {availableGroups.length === 0 && userGroups.length > 0 ? (
-            <View style={{ alignItems: 'center', marginTop: 20 }}>
-              <Text style={[styles.noGroupsText, { fontSize: 18, fontWeight: '600', marginBottom: 10 }]}>
-                🎉 All caught up!
-              </Text>
-              <Text style={[styles.noGroupsText, { textAlign: 'center', lineHeight: 20 }]}>
-                You've shared today's photo with all your groups.{'\n'}
-                Check back tomorrow for a new prompt!
-              </Text>
-            </View>
-          ) : availableGroups.length === 0 ? (
+          {availableGroups.length === 0 && (
             <Text style={styles.noGroupsText}>
               Join or create a group in your profile to start sharing photos!
             </Text>
-          ) : null}
+          )}
         </View>
       </View>
 

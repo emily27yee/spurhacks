@@ -24,7 +24,7 @@ const InitialLayout = () => {
     const inTabsGroup = segments[0] === '(tabs)';
 
     if (isLoggedIn && !inTabsGroup) {
-      router.replace('/(tabs)/camera');
+      router.replace('/(tabs)/profile');
     } else if (!isLoggedIn && inTabsGroup) {
       router.replace('/login');
     }
