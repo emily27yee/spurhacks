@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
   },
   buttonGroup: {
     gap: 20,
+    marginTop: 20,
   },
   button: {
     flexDirection: 'row',
@@ -89,6 +90,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 18,
     paddingHorizontal: 24,
+    marginTop: 20,
   },
   buttonTitle: {
     fontSize: 18,
