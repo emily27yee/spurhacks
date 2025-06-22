@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { Colors } from '@/constants/Colors'
 import { useRouter, useLocalSearchParams } from 'expo-router'
@@ -9,6 +9,7 @@ export default function SundayDump() {
     const router = useRouter()
     const params = useLocalSearchParams()
     const [story, setStory] = useState<string[]>([])
+    const [photos, setPhotos] = useState<Array<{url: string, caption: string}>>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -38,7 +39,7 @@ export default function SundayDump() {
                     console.error('Error parsing todaydata:', e)
                 }
             }            // Get all photo URLs and convert to base64
-            const photoData: Array<{data: string, mimeType: string}> = []
+            const photoData: Array<{data: string, mimeType: string, url: string}> = []
             for (const [userId, photoId] of Object.entries(todayData)) {
                 try {
                     const photoUrl = await appwriteDatabase.getPhotoUrl(photoId)
@@ -65,7 +66,8 @@ export default function SundayDump() {
                         
                         photoData.push({
                             data: base64Data,
-                            mimeType: mimeType
+                            mimeType: mimeType,
+                            url: photoUrl
                         })
                     }
                 } catch (photoError) {
@@ -81,13 +83,15 @@ export default function SundayDump() {
             const apiKey = 'AIzaSyBfgwofLGF8DiYFmfWFawA7nZAM-SRKeoA' // Using the API key directly
             const genAI = new GoogleGenerativeAI(apiKey)
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })            // Create prompt for story generation with images
-            const prompt = `You are a creative storyteller. I'm providing you with ${photoData.length} photos from a group of friends. Please create a funny, engaging story that connects all these photos together in the order they appear.
+            const prompt = `Look at these ${photoData.length} photos from a group of friends. For each photo, write exactly ONE sentence that describes what's happening or creates a funny story element. 
 
-            Write exactly one sentence per photo to create a flowing narrative. Make the story humorous and entertaining, as if you're narrating the adventures of this friend group.
-
-            Number each sentence (1., 2., 3., etc.) and make sure the story flows naturally from one photo to the next.
-
-            Look at what's actually happening in each photo and create a cohesive, funny story that ties them all together. Be creative and make it entertaining!`            // Prepare the content array with text prompt and images
+            Requirements:
+            - Write exactly one sentence per photo
+            - Number each sentence (1., 2., 3., etc.)
+            - Make each sentence funny and entertaining
+            - Each sentence should work as a caption for that specific photo
+            - Don't include any introductory text or explanations
+            - Just provide the numbered sentences, nothing else`// Prepare the content array with text prompt and images
             const contentParts: any[] = [
                 { text: prompt }
             ]
@@ -115,6 +119,13 @@ export default function SundayDump() {
                 .filter(sentence => sentence.trim().length > 0)
                 .map(sentence => sentence.trim())
 
+            // Match photos with their captions
+            const photosWithCaptions = photoData.map((photo, index) => ({
+                url: photo.url,
+                caption: sentences[index] || 'No caption generated'
+            }))
+
+            setPhotos(photosWithCaptions)
             setStory(sentences)
         } catch (err) {
             console.error('Error generating story:', err)
@@ -151,14 +162,16 @@ export default function SundayDump() {
                         <TouchableOpacity style={styles.retryButton} onPress={generateStory}>
                             <Text style={styles.retryButtonText}>Try Again</Text>
                         </TouchableOpacity>
-                    </View>
-                ) : story.length > 0 ? (
-                    <View style={styles.storyContainer}>
-                        <Text style={styles.storyTitle}>Your Group's Story</Text>
-                        {story.map((sentence, index) => (
-                            <View key={index} style={styles.sentenceContainer}>
-                                <Text style={styles.sentenceNumber}>{index + 1}.</Text>
-                                <Text style={styles.sentenceText}>{sentence}</Text>
+                    </View>                ) : photos.length > 0 ? (
+                    <View style={styles.photosContainer}>
+                        {photos.map((photo, index) => (
+                            <View key={index} style={styles.photoContainer}>
+                                <Image 
+                                    source={{ uri: photo.url }} 
+                                    style={styles.photo}
+                                    resizeMode="cover"
+                                />
+                                <Text style={styles.photoCaption}>"{photo.caption}"</Text>
                             </View>
                         ))}
                     </View>
@@ -251,9 +264,36 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
-    },
-    storyContainer: {
+    },    storyContainer: {
         flex: 1,
+    },
+    photosContainer: {
+        flex: 1,
+    },
+    photoContainer: {
+        marginBottom: 25,
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    photo: {
+        width: '100%',
+        height: 250,
+        borderRadius: 15,
+        marginBottom: 10,
+    },
+    photoCaption: {
+        fontSize: 16,
+        color: Colors.dark_text,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        lineHeight: 22,
+        paddingHorizontal: 10,
     },
     storyTitle: {
         fontSize: 24,
