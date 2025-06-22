@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -19,10 +20,17 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
       }}>
       <Tabs.Screen
-        name="camera"
+        name="index"
         options={{
-          title: 'Game',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
+          title: 'Home',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.circle.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -37,6 +45,13 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.circle.fill" color={color} />,
+        }}
+      />
+      {/* Camera screen is handled at root level to hide it from tab bar */}
+      <Tabs.Screen
+        name="camera"
+        options={{
+          tabBarButton: () => null,
         }}
       />
     </Tabs>

@@ -278,7 +278,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: Colors.dark_text,
-        marginBottom: 10,
     },
     statsContainer: {
         marginBottom: 30,

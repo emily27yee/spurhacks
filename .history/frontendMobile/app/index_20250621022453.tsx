@@ -17,7 +17,7 @@ export default function Index() {
     if (!isLoading) {
       if (isLoggedIn) {
         // User is authenticated, redirect to main app
-        router.replace('/(tabs)/camera');
+        router.replace('/(tabs)');
       } else {
         // User is not authenticated, redirect to login
         router.replace('/login');

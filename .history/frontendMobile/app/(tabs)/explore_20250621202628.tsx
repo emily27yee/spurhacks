@@ -32,19 +32,8 @@ export default function ProfileScreen() {
 
   // States
   const [showJoinableGroups, setShowJoinableGroups] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState('');
-  const [editedUsername, setEditedUsername] = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
-
-  // Update editedName and editedUsername when userProfile changes
-  useEffect(() => {
-    if (userProfile) {
-      setEditedName(userProfile.name);
-      setEditedUsername(userProfile.username);
-    }
-  }, [userProfile]);
 
   // Manual refresh function for discover button
   const handleRefreshGroups = () => {
@@ -136,39 +125,6 @@ export default function ProfileScreen() {
     setShowJoinableGroups(true);
   };
 
-  const handleSaveProfile = async () => {
-    if (!userProfile) return;
-    
-    // Validate username - should not be empty and should be alphanumeric with underscores/dots
-    const usernameRegex = /^[a-zA-Z0-9._]+$/;
-    if (!editedUsername.trim()) {
-      Alert.alert('Error', 'Username cannot be empty');
-      return;
-    }
-    if (!usernameRegex.test(editedUsername)) {
-      Alert.alert('Error', 'Username can only contain letters, numbers, dots, and underscores');
-      return;
-    }
-    if (editedUsername.length < 3) {
-      Alert.alert('Error', 'Username must be at least 3 characters long');
-      return;
-    }
-    
-    try {
-      const success = await updateProfile({ 
-        name: editedName, 
-        username: editedUsername 
-      });
-      if (success) {
-        setIsEditing(false);
-      } else {
-        Alert.alert('Error', 'Failed to update profile');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile');
-    }
-  };
-
   // Show loading state
   if (profileLoading) {
     return (
@@ -224,63 +180,6 @@ export default function ProfileScreen() {
           <ThemedView style={styles.statItem}>
             <ThemedText style={styles.statNumber}>{userGroups.length}</ThemedText>
             <ThemedText style={styles.statLabel}>Groups Joined</ThemedText>
-          </ThemedView>
-        </ThemedView>
-      </ThemedView>
-
-      {/* Edit Profile */}
-      <ThemedView style={styles.section}>
-        <ThemedView style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Profile Info</ThemedText>
-          <TouchableOpacity 
-            onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
-            style={[styles.editButton, { backgroundColor: isEditing ? '#4CAF50' : '#007AFF' }]}
-          >
-            <ThemedText style={styles.editButtonText}>
-              {isEditing ? 'Save' : 'Edit'}
-            </ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
-        
-        <ThemedView style={styles.profileInfo}>
-          <ThemedView style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Name</ThemedText>
-            {isEditing ? (
-              <TextInput
-                style={[styles.textInput, { color: colors.text, borderColor: '#007AFF' }]}
-                value={editedName}
-                onChangeText={setEditedName}
-                placeholder="Enter your name"
-              />
-            ) : (
-              <ThemedText style={styles.infoValue}>{userProfile.name}</ThemedText>
-            )}
-          </ThemedView>
-          <ThemedView style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Email</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.email}</ThemedText>
-          </ThemedView>
-          <ThemedView style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Username</ThemedText>
-            {isEditing ? (
-              <ThemedView style={styles.usernameContainer}>
-                <ThemedText style={styles.usernamePrefix}>@</ThemedText>
-                                 <TextInput
-                   style={[styles.textInput, styles.usernameInput, { color: colors.text, borderColor: '#007AFF' }]}
-                   value={editedUsername}
-                   onChangeText={setEditedUsername}
-                   placeholder="Enter username"
-                   autoCapitalize="none"
-                   autoCorrect={false}
-                 />
-              </ThemedView>
-            ) : (
-              <ThemedText style={styles.infoValue}>@{userProfile.username}</ThemedText>
-            )}
-          </ThemedView>
-          <ThemedView style={styles.infoItem}>
-            <ThemedText style={styles.infoLabel}>Member Since</ThemedText>
-            <ThemedText style={styles.infoValue}>{userProfile.joinDate}</ThemedText>
           </ThemedView>
         </ThemedView>
       </ThemedView>

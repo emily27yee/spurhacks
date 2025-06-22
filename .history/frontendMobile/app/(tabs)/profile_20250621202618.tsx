@@ -120,7 +120,7 @@ const Profile = () => {
                 <View style={styles.stats}>
                     <View style={styles.stat}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>{userPhotos.length}</Text>
+                            <Text style={styles.statValue}>{userProfile.totalPhotos ?? 0}</Text>
                         </View>
                         <Text style={styles.statLabel}>Photos Shared</Text>
                     </View>
@@ -278,7 +278,6 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: Colors.dark_text,
-        marginBottom: 10,
     },
     statsContainer: {
         marginBottom: 30,
